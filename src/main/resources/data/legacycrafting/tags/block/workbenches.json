@@ -1,0 +1,9 @@
+{
+  "values": [
+    "minecraft:crafting_table",
+    {
+      "id": "#tfc:workbenches",
+      "required": false
+    }
+  ]
+}

@@ -4,5 +4,6 @@
   "attribute.name.legacycrafting.crafting_time": "Temps de fabrication",
   "legacycrafting.message.no_recipe": "Aucune recette ne correspond à ces objets",
   "legacycrafting.message.items_changed": "Fabrication interrompue : les objets ont changé",
-  "legacycrafting.message.too_far": "Fabrication interrompue : tu t'es éloigné"
+  "legacycrafting.message.too_far": "Fabrication interrompue : tu t'es éloigné",
+  "legacycrafting.button.craft": "Fabriquer"
 }

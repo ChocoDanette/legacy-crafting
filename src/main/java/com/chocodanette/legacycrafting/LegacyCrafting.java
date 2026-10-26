@@ -4,6 +4,8 @@ import com.chocodanette.legacycrafting.crafting.InWorldCrafting;
 import com.chocodanette.legacycrafting.crafting.InventoryGrid;
 import com.chocodanette.legacycrafting.network.CraftProgressPayload;
 import com.chocodanette.legacycrafting.network.StartCraftPayload;
+import com.chocodanette.legacycrafting.network.WorkbenchCraftPayload;
+import com.chocodanette.legacycrafting.workbench.Workbenches;
 import com.mojang.logging.LogUtils;
 import net.minecraft.world.entity.EntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -28,11 +30,14 @@ public class LegacyCrafting
     public LegacyCrafting(final IEventBus modBus, final ModContainer container)
     {
         ModAttributes.ATTRIBUTES.register(modBus);
+        ModMenus.MENUS.register(modBus);
+        ModMenus.ATTACHMENTS.register(modBus);
         container.registerConfig(ModConfig.Type.SERVER, Config.SPEC);
         modBus.addListener(this::onRegisterPayloads);
         modBus.addListener(this::onAttributeModification);
         NeoForge.EVENT_BUS.register(InWorldCrafting.class);
         NeoForge.EVENT_BUS.register(InventoryGrid.class);
+        NeoForge.EVENT_BUS.register(Workbenches.class);
     }
 
     private void onAttributeModification(final EntityAttributeModificationEvent event)
@@ -44,6 +49,7 @@ public class LegacyCrafting
     {
         event.registrar("1")
           .playToServer(StartCraftPayload.TYPE, StartCraftPayload.STREAM_CODEC, StartCraftPayload::handle)
+          .playToServer(WorkbenchCraftPayload.TYPE, WorkbenchCraftPayload.STREAM_CODEC, WorkbenchCraftPayload::handle)
           .playToClient(CraftProgressPayload.TYPE, CraftProgressPayload.STREAM_CODEC, CraftProgressPayload::handle);
     }
 }
