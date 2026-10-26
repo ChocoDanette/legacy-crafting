@@ -1,7 +1,6 @@
 package com.chocodanette.legacycrafting.crafting;
 
 import com.chocodanette.legacycrafting.Config;
-import com.chocodanette.legacycrafting.ModAttributes;
 import com.chocodanette.legacycrafting.network.CraftProgressPayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -11,7 +10,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
@@ -125,8 +123,7 @@ public final class InWorldCrafting
             return;
         }
 
-        final int ticks = Math.max(1, Mth.ceil(seconds(recipe.get(), grid.input().ingredientCount()) * 20
-          * player.getAttributeValue(ModAttributes.CRAFTING_TIME)));
+        final int ticks = CraftTime.ticks(player, recipe.get(), grid.input().ingredientCount());
         CRAFTS.put(player.getUUID(), new Craft(surface.pos(), facing, snapshot(surface), ticks, new int[1]));
         PacketDistributor.sendToPlayer(player, new CraftProgressPayload(0f));
     }
@@ -259,23 +256,6 @@ public final class InWorldCrafting
             return Optional.empty();
         }
         return level.getRecipeManager().getRecipeFor(RecipeType.CRAFTING, grid.input(), level);
-    }
-
-    /**
-     * The time of a recipe in seconds, before the player's crafting_time attribute.
-     */
-    private static double seconds(final RecipeHolder<CraftingRecipe> recipe, final int ingredients)
-    {
-        for (final String entry : Config.RECIPE_SECONDS.get())
-        {
-            final Double seconds = Config.secondsFor(entry, recipe.id());
-            if (seconds != null)
-            {
-                return seconds;
-            }
-        }
-        final double computed = Config.BASE_SECONDS.get() + Config.SECONDS_PER_INGREDIENT.get() * ingredients;
-        return Mth.clamp(computed, Config.MIN_SECONDS.get(), Math.max(Config.MIN_SECONDS.get(), Config.MAX_SECONDS.get()));
     }
 
     private static boolean isClose(final ServerPlayer player, final BlockPos pos)

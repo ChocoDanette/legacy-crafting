@@ -38,6 +38,11 @@ public final class Config
       .comment("If true, the 2x2 crafting grid of the player's inventory is hidden and cannot be used.")
       .define("disableInventoryCrafting", true);
 
+    public static final ModConfigSpec.BooleanValue WORKBENCH_CRAFTING = BUILDER
+      .comment("If true, workbenches (tag legacycrafting:workbenches) keep their items, and their crafts take time like",
+        "crafts on the ground.")
+      .define("workbenchCrafting", true);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private Config()
@@ -50,6 +55,11 @@ public final class Config
     public static boolean inventoryCraftingDisabled()
     {
         return SPEC.isLoaded() && DISABLE_INVENTORY_CRAFTING.get();
+    }
+
+    public static boolean workbenchCraftingEnabled()
+    {
+        return SPEC.isLoaded() && WORKBENCH_CRAFTING.get();
     }
 
     private static boolean isRecipeSeconds(final Object value)

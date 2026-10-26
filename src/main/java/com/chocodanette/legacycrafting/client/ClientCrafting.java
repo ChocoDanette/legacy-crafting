@@ -1,6 +1,7 @@
 package com.chocodanette.legacycrafting.client;
 
 import com.chocodanette.legacycrafting.LegacyCrafting;
+import com.chocodanette.legacycrafting.ModMenus;
 import com.chocodanette.legacycrafting.network.StartCraftPayload;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
@@ -16,6 +17,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -39,6 +41,12 @@ public final class ClientCrafting
         public static void onRegisterKeys(final RegisterKeyMappingsEvent event)
         {
             event.register(CRAFT);
+        }
+
+        @SubscribeEvent
+        public static void onRegisterScreens(final RegisterMenuScreensEvent event)
+        {
+            event.register(ModMenus.WORKBENCH.get(), WorkbenchScreen::new);
         }
 
         @SubscribeEvent
