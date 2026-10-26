@@ -34,10 +34,22 @@ public final class Config
       .comment("The craft stops when the player is farther than this from the crafted items, in blocks.")
       .defineInRange("maxDistance", 3.0, 1.0, 16.0);
 
+    public static final ModConfigSpec.BooleanValue DISABLE_INVENTORY_CRAFTING = BUILDER
+      .comment("If true, the 2x2 crafting grid of the player's inventory is hidden and cannot be used.")
+      .define("disableInventoryCrafting", true);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private Config()
     {
+    }
+
+    /**
+     * The server config is synced to clients, but not loaded before a world is joined.
+     */
+    public static boolean inventoryCraftingDisabled()
+    {
+        return SPEC.isLoaded() && DISABLE_INVENTORY_CRAFTING.get();
     }
 
     private static boolean isRecipeSeconds(final Object value)
