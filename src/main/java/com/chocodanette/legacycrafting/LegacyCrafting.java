@@ -1,6 +1,7 @@
 package com.chocodanette.legacycrafting;
 
 import com.chocodanette.legacycrafting.crafting.InWorldCrafting;
+import com.chocodanette.legacycrafting.crafting.InventoryGrid;
 import com.chocodanette.legacycrafting.network.CraftProgressPayload;
 import com.chocodanette.legacycrafting.network.StartCraftPayload;
 import com.mojang.logging.LogUtils;
@@ -31,6 +32,7 @@ public class LegacyCrafting
         modBus.addListener(this::onRegisterPayloads);
         modBus.addListener(this::onAttributeModification);
         NeoForge.EVENT_BUS.register(InWorldCrafting.class);
+        NeoForge.EVENT_BUS.register(InventoryGrid.class);
     }
 
     private void onAttributeModification(final EntityAttributeModificationEvent event)

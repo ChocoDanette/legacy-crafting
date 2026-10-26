@@ -11,12 +11,14 @@ In-world crafting for the TerraFirmaCraft Legacy modpack (Minecraft 1.21.1, NeoF
    or changing the items stops the craft.
 4. The result drops on the block. Ingredients are used up; remainders (a damaged tool, an empty bucket) stay in place.
 
-Any 2x2 crafting recipe works, TFC's included.
+Any 2x2 crafting recipe works, TFC's included. The inventory's own 2x2 crafting grid is removed: crafting happens in
+the world.
 
 ## For pack makers
 
 - Server config `legacycrafting-server.toml`: base time, time per ingredient, minimum and maximum time, fixed times
-  for some recipes (`recipeSeconds`), and the distance at which the craft stops.
+  for some recipes (`recipeSeconds`), the distance at which the craft stops, and `disableInventoryCrafting` (true: the
+  inventory has no 2x2 grid).
 - Attribute `legacycrafting:crafting_time` (default 1) multiplies every craft time of a player. A "lazy" trait can add
   a modifier, for example:
   `/attribute @s legacycrafting:crafting_time modifier add legacy:lazy 0.5 add_multiplied_base` (1.5 times longer).
