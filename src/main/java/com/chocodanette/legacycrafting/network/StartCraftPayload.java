@@ -4,6 +4,7 @@ import com.chocodanette.legacycrafting.LegacyCrafting;
 import com.chocodanette.legacycrafting.crafting.InWorldCrafting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
@@ -11,16 +12,19 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Optional;
+
 /**
- * Sent by the craft key: craft the items laid on the targeted block.
+ * Sent by the craft key: craft the items laid on the targeted block, with the recipe chosen in the preview.
  */
-public record StartCraftPayload(BlockPos target) implements CustomPacketPayload
+public record StartCraftPayload(BlockPos target, Optional<ResourceLocation> recipe) implements CustomPacketPayload
 {
     public static final Type<StartCraftPayload> TYPE =
       new Type<>(ResourceLocation.fromNamespaceAndPath(LegacyCrafting.MOD_ID, "start_craft"));
 
     public static final StreamCodec<FriendlyByteBuf, StartCraftPayload> STREAM_CODEC =
-      StreamCodec.composite(BlockPos.STREAM_CODEC, StartCraftPayload::target, StartCraftPayload::new);
+      StreamCodec.composite(BlockPos.STREAM_CODEC, StartCraftPayload::target,
+        ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs::optional), StartCraftPayload::recipe, StartCraftPayload::new);
 
     @NotNull
     @Override
@@ -34,7 +38,7 @@ public record StartCraftPayload(BlockPos target) implements CustomPacketPayload
         context.enqueueWork(() -> {
             if (context.player() instanceof final ServerPlayer player)
             {
-                InWorldCrafting.start(player, payload.target);
+                InWorldCrafting.start(player, payload.target, payload.recipe);
             }
         });
     }

@@ -8,6 +8,9 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
 
 - Workbench preview: the result of the grid shows above the arrow before crafting, with its tooltip. When the grid
   matches several recipes, the arrows beside it (or the mouse wheel over it) choose which one the Craft button makes.
+- Ground preview: looking at items placed on the ground shows the result under the crosshair. When several recipes
+  match, "< 1/3 >" shows beside it and the mouse wheel chooses which one the craft key makes (the wheel then no
+  longer changes the hotbar slot).
 
 ## 0.3.0
 

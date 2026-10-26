@@ -15,6 +15,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
@@ -64,12 +65,22 @@ public final class ClientCrafting
         public static void onClientTick(final ClientTickEvent.Post event)
         {
             final Minecraft minecraft = Minecraft.getInstance();
+            GroundPreview.tick(minecraft);
             while (CRAFT.consumeClick())
             {
                 if (minecraft.player != null && minecraft.hitResult instanceof final BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK)
                 {
-                    PacketDistributor.sendToServer(new StartCraftPayload(hit.getBlockPos()));
+                    PacketDistributor.sendToServer(new StartCraftPayload(hit.getBlockPos(), GroundPreview.chosen()));
                 }
+            }
+        }
+
+        @SubscribeEvent
+        public static void onMouseScroll(final InputEvent.MouseScrollingEvent event)
+        {
+            if (Minecraft.getInstance().screen == null && GroundPreview.scroll(event.getScrollDeltaY()))
+            {
+                event.setCanceled(true);
             }
         }
 
@@ -84,7 +95,12 @@ public final class ClientCrafting
     {
         final float progress = CraftProgressOverlay.progress();
         final Minecraft minecraft = Minecraft.getInstance();
-        if (progress < 0 || minecraft.options.hideGui)
+        if (minecraft.options.hideGui)
+        {
+            return;
+        }
+        GroundPreview.render(graphics, minecraft);
+        if (progress < 0)
         {
             return;
         }
