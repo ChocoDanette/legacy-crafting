@@ -5,7 +5,8 @@ In-world crafting for the TerraFirmaCraft Legacy modpack (Minecraft 1.21.1, NeoF
 ## How it works
 
 1. Place items on the ground with TFC's place key (V by default): a block holds four items, as a 2x2 grid.
-2. Look at the items and press the craft key (R by default, "Craft" in the controls). The grid is read as seen from
+2. Look at the items: the result shows under the crosshair. When several recipes match, the mouse wheel chooses one.
+   Press the craft key (R by default, "Craft" in the controls). The grid is read as seen from
    where you stand: the two quarters farther from you are the top row.
 3. Stay within 3 blocks while the bar under the crosshair fills (1 to 5 seconds, depending on the recipe). Walking away
    or changing the items stops the craft.
@@ -13,7 +14,8 @@ In-world crafting for the TerraFirmaCraft Legacy modpack (Minecraft 1.21.1, NeoF
 
 Workbenches (the vanilla crafting table and TFC's workbenches) keep their items. Lay a 3x3 recipe, then press "Craft"
 (or the craft key): the arrow fills over the same time, the window must stay open, and the result lands in the result
-slot.
+slot. The result shows above the arrow before crafting; when several recipes match, the arrows beside it (or the
+mouse wheel) choose which one to craft.
 
 Any 2x2 crafting recipe works, TFC's included. The inventory's own 2x2 crafting grid is removed: crafting happens in
 the world.

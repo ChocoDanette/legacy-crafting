@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -16,7 +17,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.CommonHooks;
@@ -24,6 +24,7 @@ import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,60 +51,18 @@ public final class InWorldCrafting
     /**
      * A craft in progress: the items it started with, so that it stops if they change.
      */
-    private record Craft(BlockPos pos, Direction facing, List<ItemStack> items, int totalTicks, int[] elapsed)
+    private record Craft(BlockPos pos, Direction facing, ResourceLocation recipe, List<ItemStack> items, int totalTicks, int[] elapsed)
     {
     }
 
     /**
-     * The 2x2 grid of a surface, as seen by a player looking {@code facing}, with the slot behind each cell.
+     * The player pressed the craft key while looking at {@code target}, having chosen {@code chosen} among the
+     * matching recipes (or the first one if absent).
      */
-    private record Grid(CraftingInput.Positioned positioned, int[] slots)
-    {
-        static Grid of(final CraftingSurface surface, final Direction facing)
-        {
-            final List<ItemStack> items = new ArrayList<>(CraftingSurface.SLOTS);
-            final int[] slots = new int[CraftingSurface.SLOTS];
-            for (int row = 0; row < 2; row++)
-            {
-                for (int column = 0; column < 2; column++)
-                {
-                    final int slot = CraftingSurface.slotAt(facing, column, row);
-                    slots[row * 2 + column] = slot;
-                    items.add(surface.get(slot).copyWithCount(1));
-                }
-            }
-            return new Grid(CraftingInput.ofPositioned(2, 2, items), slots);
-        }
-
-        CraftingInput input()
-        {
-            return positioned.input();
-        }
-
-        /**
-         * @return the surface slot under cell {@code index} of the trimmed input.
-         */
-        int slot(final int index)
-        {
-            final CraftingInput input = input();
-            final int column = positioned.left() + index % input.width();
-            final int row = positioned.top() + index / input.width();
-            return slots[row * 2 + column];
-        }
-    }
-
-    /**
-     * The player pressed the craft key while looking at {@code target}.
-     */
-    public static void start(final ServerPlayer player, final BlockPos target)
+    public static void start(final ServerPlayer player, final BlockPos target, final Optional<ResourceLocation> chosen)
     {
         final ServerLevel level = player.serverLevel();
-        CraftingSurface surface = CraftingSurface.find(level, target);
-        if (surface == null)
-        {
-            // Looking at the ground under the items.
-            surface = CraftingSurface.find(level, target.above());
-        }
+        final CraftingSurface surface = CraftingSurface.findTarget(level, target);
         if (surface == null || !isClose(player, surface.pos()))
         {
             return;
@@ -115,8 +74,8 @@ public final class InWorldCrafting
         }
 
         final Direction facing = player.getDirection();
-        final Grid grid = Grid.of(surface, facing);
-        final Optional<RecipeHolder<CraftingRecipe>> recipe = findRecipe(level, grid);
+        final SurfaceGrid grid = SurfaceGrid.of(surface, facing);
+        final Optional<RecipeHolder<CraftingRecipe>> recipe = findRecipe(level, grid, chosen.orElse(null));
         if (recipe.isEmpty())
         {
             stop(player, Component.translatable("legacycrafting.message.no_recipe"));
@@ -124,7 +83,7 @@ public final class InWorldCrafting
         }
 
         final int ticks = CraftTime.ticks(player, recipe.get(), grid.input().ingredientCount());
-        CRAFTS.put(player.getUUID(), new Craft(surface.pos(), facing, snapshot(surface), ticks, new int[1]));
+        CRAFTS.put(player.getUUID(), new Craft(surface.pos(), facing, recipe.get().id(), snapshot(surface), ticks, new int[1]));
         PacketDistributor.sendToPlayer(player, new CraftProgressPayload(0f));
     }
 
@@ -168,7 +127,7 @@ public final class InWorldCrafting
 
         CRAFTS.remove(player.getUUID());
         PacketDistributor.sendToPlayer(player, new CraftProgressPayload(-1f));
-        if (!finish(player, surface, craft.facing))
+        if (!finish(player, surface, craft.facing, craft.recipe))
         {
             player.displayClientMessage(Component.translatable("legacycrafting.message.no_recipe"), true);
         }
@@ -194,12 +153,13 @@ public final class InWorldCrafting
      *
      * @return false if the items no longer make a recipe.
      */
-    private static boolean finish(final ServerPlayer player, final CraftingSurface surface, final Direction facing)
+    private static boolean finish(final ServerPlayer player, final CraftingSurface surface, final Direction facing,
+      final ResourceLocation recipeId)
     {
         final ServerLevel level = player.serverLevel();
-        final Grid grid = Grid.of(surface, facing);
-        final Optional<RecipeHolder<CraftingRecipe>> found = findRecipe(level, grid);
-        if (found.isEmpty())
+        final SurfaceGrid grid = SurfaceGrid.of(surface, facing);
+        final Optional<RecipeHolder<CraftingRecipe>> found = findRecipe(level, grid, recipeId);
+        if (found.isEmpty() || !found.get().id().equals(recipeId))
         {
             return false;
         }
@@ -249,13 +209,14 @@ public final class InWorldCrafting
         return true;
     }
 
-    private static Optional<RecipeHolder<CraftingRecipe>> findRecipe(final ServerLevel level, final Grid grid)
+    /**
+     * @return the recipe {@code id} if the grid matches it, else the first matching recipe.
+     */
+    private static Optional<RecipeHolder<CraftingRecipe>> findRecipe(final ServerLevel level, final SurfaceGrid grid,
+      @Nullable final ResourceLocation id)
     {
-        if (grid.input().isEmpty())
-        {
-            return Optional.empty();
-        }
-        return level.getRecipeManager().getRecipeFor(RecipeType.CRAFTING, grid.input(), level);
+        final List<RecipeHolder<CraftingRecipe>> recipes = grid.matchingRecipes(level);
+        return recipes.stream().filter(recipe -> recipe.id().equals(id)).findFirst().or(() -> recipes.stream().findFirst());
     }
 
     private static boolean isClose(final ServerPlayer player, final BlockPos pos)

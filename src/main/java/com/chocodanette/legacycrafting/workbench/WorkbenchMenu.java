@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -23,9 +24,11 @@ import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.event.EventHooks;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +53,8 @@ public class WorkbenchMenu extends AbstractContainerMenu
      */
     private final ContainerData progress;
     private List<ItemStack> craftItems = List.of();
+    @Nullable
+    private ResourceLocation craftRecipe;
 
     /**
      * Client side.
@@ -105,21 +110,23 @@ public class WorkbenchMenu extends AbstractContainerMenu
     }
 
     /**
-     * The player pressed the craft button.
+     * The player pressed the craft button, having chosen {@code chosen} among the matching recipes (or the first one
+     * if absent).
      */
-    public void startCraft(final ServerPlayer player)
+    public void startCraft(final ServerPlayer player, final Optional<ResourceLocation> chosen)
     {
         if (progress.get(1) > 0)
         {
             return;
         }
-        final Optional<RecipeHolder<CraftingRecipe>> recipe = findRecipe(player.serverLevel());
+        final Optional<RecipeHolder<CraftingRecipe>> recipe = findRecipe(player.serverLevel(), chosen.orElse(null));
         if (recipe.isEmpty())
         {
             player.displayClientMessage(Component.translatable("legacycrafting.message.no_recipe"), true);
             return;
         }
         craftItems = gridItems();
+        craftRecipe = recipe.get().id();
         progress.set(0, 0);
         progress.set(1, CraftTime.ticks(player, recipe.get(), grid().input().ingredientCount()));
     }
@@ -148,8 +155,9 @@ public class WorkbenchMenu extends AbstractContainerMenu
         }
         if (elapsed >= total)
         {
+            final ResourceLocation recipe = craftRecipe;
             stopCraft();
-            if (!finish(player))
+            if (!finish(player, recipe))
             {
                 player.displayClientMessage(Component.translatable("legacycrafting.message.no_recipe"), true);
             }
@@ -161,9 +169,10 @@ public class WorkbenchMenu extends AbstractContainerMenu
         progress.set(0, 0);
         progress.set(1, 0);
         craftItems = List.of();
+        craftRecipe = null;
     }
 
-    private CraftingInput.Positioned grid()
+    public CraftingInput.Positioned grid()
     {
         final List<ItemStack> items = new ArrayList<>(GRID_SLOTS);
         for (int slot = 0; slot < GRID_SLOTS; slot++)
@@ -173,10 +182,22 @@ public class WorkbenchMenu extends AbstractContainerMenu
         return CraftingInput.ofPositioned(3, 3, items);
     }
 
-    private Optional<RecipeHolder<CraftingRecipe>> findRecipe(final ServerLevel level)
+    /**
+     * @return every recipe the grid matches, in the same order on both sides.
+     */
+    public List<RecipeHolder<CraftingRecipe>> matchingRecipes(final Level level)
     {
         final CraftingInput input = grid().input();
-        return input.isEmpty() ? Optional.empty() : level.getRecipeManager().getRecipeFor(RecipeType.CRAFTING, input, level);
+        return input.isEmpty() ? List.of() : level.getRecipeManager().getRecipesFor(RecipeType.CRAFTING, input, level);
+    }
+
+    /**
+     * @return the recipe {@code id} if the grid matches it, else the first matching recipe.
+     */
+    private Optional<RecipeHolder<CraftingRecipe>> findRecipe(final ServerLevel level, @Nullable final ResourceLocation id)
+    {
+        final List<RecipeHolder<CraftingRecipe>> recipes = matchingRecipes(level);
+        return recipes.stream().filter(recipe -> recipe.id().equals(id)).findFirst().or(() -> recipes.stream().findFirst());
     }
 
     /**
@@ -184,11 +205,11 @@ public class WorkbenchMenu extends AbstractContainerMenu
      *
      * @return false if the items no longer make a recipe.
      */
-    private boolean finish(final ServerPlayer player)
+    private boolean finish(final ServerPlayer player, @Nullable final ResourceLocation recipeId)
     {
         final ServerLevel level = player.serverLevel();
-        final Optional<RecipeHolder<CraftingRecipe>> found = findRecipe(level);
-        if (found.isEmpty())
+        final Optional<RecipeHolder<CraftingRecipe>> found = findRecipe(level, recipeId);
+        if (found.isEmpty() || !found.get().id().equals(recipeId))
         {
             return false;
         }

@@ -76,6 +76,16 @@ public final class CraftingSurface
         return null;
     }
 
+    /**
+     * @return the surface the player looks at: {@code target} itself, or the items lying on top of it.
+     */
+    @Nullable
+    public static CraftingSurface findTarget(final Level level, final BlockPos target)
+    {
+        final CraftingSurface surface = find(level, target);
+        return surface != null ? surface : find(level, target.above());
+    }
+
     public BlockPos pos()
     {
         return pos;
