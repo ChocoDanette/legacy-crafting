@@ -13,7 +13,8 @@ In-world crafting for the TerraFirmaCraft Legacy modpack (Minecraft 1.21.1, NeoF
 
 Workbenches (the vanilla crafting table and TFC's workbenches) keep their items. Lay a 3x3 recipe, then press "Craft"
 (or the craft key): the arrow fills over the same time, the window must stay open, and the result lands in the result
-slot.
+slot. The result shows above the arrow before crafting; when several recipes match, the arrows beside it (or the
+mouse wheel) choose which one to craft.
 
 Any 2x2 crafting recipe works, TFC's included. The inventory's own 2x2 crafting grid is removed: crafting happens in
 the world.
