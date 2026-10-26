@@ -8,6 +8,7 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.world.inventory.RecipeBookType;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ContainerScreenEvent;
@@ -18,6 +19,8 @@ import java.util.List;
 /**
  * Hides the 2x2 crafting grid of the inventory screen: its "Crafting" title, grid, arrow and result, and the recipe
  * book that would fill it. The slots themselves are locked by {@code InventoryGrid}.
+ * <p>
+ * JEI makes the hidden arrow a "Show Recipes" area: clicks there are dropped before JEI sees them.
  */
 @EventBusSubscriber(modid = LegacyCrafting.MOD_ID, value = Dist.CLIENT)
 public final class InventoryScreenHandler
@@ -60,6 +63,20 @@ public final class InventoryScreenHandler
             if (listener instanceof final ImageButton button && button.getX() == x && button.getY() == y)
             {
                 event.removeListener(button);
+            }
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onMouseClicked(final ScreenEvent.MouseButtonPressed.Pre event)
+    {
+        if (event.getScreen() instanceof final InventoryScreen screen && Config.inventoryCraftingDisabled())
+        {
+            final double x = event.getMouseX() - screen.getGuiLeft();
+            final double y = event.getMouseY() - screen.getGuiTop();
+            if (x >= LEFT && x < RIGHT && y >= TOP && y < BOTTOM)
+            {
+                event.setCanceled(true);
             }
         }
     }
