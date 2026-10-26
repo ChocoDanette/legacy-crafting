@@ -1,0 +1,8 @@
+{
+  "values": [
+    {
+      "id": "tfc:placed_item",
+      "required": false
+    }
+  ]
+}

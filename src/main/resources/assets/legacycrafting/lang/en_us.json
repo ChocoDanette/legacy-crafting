@@ -1,0 +1,8 @@
+{
+  "key.categories.legacycrafting": "Legacy Crafting",
+  "key.legacycrafting.craft": "Craft (items placed on the ground)",
+  "attribute.name.legacycrafting.crafting_time": "Crafting Time",
+  "legacycrafting.message.no_recipe": "No recipe matches these items",
+  "legacycrafting.message.items_changed": "Crafting stopped: the items changed",
+  "legacycrafting.message.too_far": "Crafting stopped: you walked away"
+}
