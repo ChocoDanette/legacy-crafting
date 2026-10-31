@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * The items left in the workbenches of a chunk: workbenches have no block entity, so the chunk keeps them.
@@ -66,6 +67,14 @@ public final class WorkbenchItems
     public NonNullList<ItemStack> get(final BlockPos pos)
     {
         return benches.computeIfAbsent(pos.asLong(), key -> NonNullList.withSize(SIZE, ItemStack.EMPTY));
+    }
+
+    /**
+     * Calls {@code action} for each workbench of the chunk.
+     */
+    public void forEach(final BiConsumer<BlockPos, NonNullList<ItemStack>> action)
+    {
+        benches.forEach((pos, stacks) -> action.accept(BlockPos.of(pos), stacks));
     }
 
     /**

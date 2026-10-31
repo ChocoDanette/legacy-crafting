@@ -4,6 +4,30 @@ Each version is published as a GitHub release with its jar. To release, set `mod
 `gradle.properties`, add its section below, merge to `main`, then run the Release workflow
 from the Actions tab (it creates the tag `v<mod_version>`), or push that tag yourself.
 
+## 0.5.0
+
+- The mod works without TerraFirmaCraft. Without TFC, it places items on the ground itself: the place key (V by
+  default, "Place item on the ground" in the controls) puts one item of the main hand in the quarter of the block the
+  player looks at, four items per block (`legacycrafting:placed_items`). A right click on a quarter picks its item
+  up; the block drops its items when broken and goes away with its last item. With TFC, TFC's placed items are used as
+  before and the key is not registered, so the two never compete for V. Server config `groundPlacing` (true by default)
+  turns it off.
+- Holding the craft key down repeats the craft: when a craft on the ground ends, each quarter it emptied gets the same
+  item again from the player's inventory, and the same recipe starts again. It stops when the key is released or an
+  item runs out.
+- Crafting sounds and visuals: the sound depends on the ingredients (wood: an axe stripping a log; blocks: their hit
+  sound; other items: rustling leather), the player's arm swings, and bits of the ingredients fly off the ground.
+- No more messages on screen: a craft that cannot start or stops just ends quietly.
+- Workbench window: the progress fills the arrow like a furnace's. A panel on the right of the window sets how many
+  items to make, in steps of the recipe's result (a log makes 4, 8, 12... planks): "+" and "-" (one craft more or
+  less, or the mouse wheel over the panel), "++" (as many as the grid and the inventory allow, tools aside, 64 items at
+  most) and "--" (one craft). Craft makes them in a row, refilling the emptied cells from the player's inventory, and
+  the number counts down while it works.
+- The items laid in a workbench's grid show on top of the block, one per cell of the crafting table texture, the top
+  row of the grid always to the north, for every player who sees it.
+- Released under the MIT license (`LICENSE`).
+- The mod list shows a logo and links to the source and the issue tracker.
+
 ## 0.4.0
 
 - Workbench preview: the result of the grid shows above the arrow before crafting, with its tooltip. When the grid

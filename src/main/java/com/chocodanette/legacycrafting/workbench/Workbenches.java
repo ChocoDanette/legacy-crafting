@@ -3,7 +3,9 @@ package com.chocodanette.legacycrafting.workbench;
 import com.chocodanette.legacycrafting.Config;
 import com.chocodanette.legacycrafting.LegacyCrafting;
 import com.chocodanette.legacycrafting.ModMenus;
+import com.chocodanette.legacycrafting.network.WorkbenchItemsPayload;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -14,6 +16,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -21,8 +24,10 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ChunkWatchEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
 
@@ -101,7 +106,37 @@ public final class Workbenches
     {
         final LevelChunk chunk = level.getChunkAt(pos);
         final WorkbenchItems items = chunk.getData(ModMenus.WORKBENCH_ITEMS);
-        return new WorkbenchContainer(items.get(pos), () -> chunk.setUnsaved(true));
+        final NonNullList<ItemStack> stacks = items.get(pos);
+        return new WorkbenchContainer(stacks, () -> {
+            chunk.setUnsaved(true);
+            PacketDistributor.sendToPlayersTrackingChunk(level, chunk.getPos(), payload(pos, stacks));
+        });
+    }
+
+    /**
+     * Shows the items of the chunk's workbenches to a player who starts seeing it.
+     */
+    @SubscribeEvent
+    public static void onChunkSent(final ChunkWatchEvent.Sent event)
+    {
+        final LevelChunk chunk = event.getChunk();
+        if (chunk.hasData(ModMenus.WORKBENCH_ITEMS))
+        {
+            chunk.getData(ModMenus.WORKBENCH_ITEMS).forEach((pos, stacks) -> {
+                if (stacks.stream().anyMatch(stack -> !stack.isEmpty()))
+                {
+                    PacketDistributor.sendToPlayer(event.getPlayer(), payload(pos, stacks));
+                }
+            });
+        }
+    }
+
+    /**
+     * The grid only: the result slot does not show on the block.
+     */
+    private static WorkbenchItemsPayload payload(final BlockPos pos, final List<ItemStack> stacks)
+    {
+        return new WorkbenchItemsPayload(pos, stacks.subList(0, WorkbenchMenu.GRID_SLOTS).stream().map(ItemStack::copy).toList());
     }
 
     private static void dropItems(final ServerLevel level, final BlockPos pos)
@@ -119,6 +154,7 @@ public final class Workbenches
         if (!items.isEmpty())
         {
             chunk.setUnsaved(true);
+            PacketDistributor.sendToPlayersTrackingChunk(level, new ChunkPos(pos), new WorkbenchItemsPayload(pos, List.of()));
         }
     }
 }

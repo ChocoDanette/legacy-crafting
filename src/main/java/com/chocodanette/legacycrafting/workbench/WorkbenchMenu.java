@@ -5,7 +5,6 @@ import com.chocodanette.legacycrafting.crafting.CraftTime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -48,8 +47,11 @@ public class WorkbenchMenu extends AbstractContainerMenu
 
     private final Container container;
     private final BlockPos pos;
+    public static final int MAX_QUANTITY = 64;
+
     /**
-     * Ticks elapsed and total ticks of the craft in progress, synced to the screen. Total is 0 when idle.
+     * Ticks elapsed and total ticks of the craft in progress, and crafts left including this one, synced to the
+     * screen. Total is 0 when idle.
      */
     private final ContainerData progress;
     private List<ItemStack> craftItems = List.of();
@@ -69,7 +71,7 @@ public class WorkbenchMenu extends AbstractContainerMenu
         super(ModMenus.WORKBENCH.get(), id);
         this.container = container;
         this.pos = pos;
-        this.progress = new SimpleContainerData(2);
+        this.progress = new SimpleContainerData(3);
 
         for (int row = 0; row < 3; row++)
         {
@@ -110,10 +112,18 @@ public class WorkbenchMenu extends AbstractContainerMenu
     }
 
     /**
-     * The player pressed the craft button, having chosen {@code chosen} among the matching recipes (or the first one
-     * if absent).
+     * @return the crafts left including the one in progress, or 0 when no craft is running.
      */
-    public void startCraft(final ServerPlayer player, final Optional<ResourceLocation> chosen)
+    public int remaining()
+    {
+        return progress.get(1) <= 0 ? 0 : progress.get(2);
+    }
+
+    /**
+     * The player pressed the craft button, having chosen {@code chosen} among the matching recipes (or the first one
+     * if absent), to craft it {@code quantity} times in a row.
+     */
+    public void startCraft(final ServerPlayer player, final Optional<ResourceLocation> chosen, final int quantity)
     {
         if (progress.get(1) > 0)
         {
@@ -122,13 +132,18 @@ public class WorkbenchMenu extends AbstractContainerMenu
         final Optional<RecipeHolder<CraftingRecipe>> recipe = findRecipe(player.serverLevel(), chosen.orElse(null));
         if (recipe.isEmpty())
         {
-            player.displayClientMessage(Component.translatable("legacycrafting.message.no_recipe"), true);
             return;
         }
+        progress.set(2, Math.clamp(quantity, 1, MAX_QUANTITY));
+        begin(player, recipe.get());
+    }
+
+    private void begin(final ServerPlayer player, final RecipeHolder<CraftingRecipe> recipe)
+    {
         craftItems = gridItems();
-        craftRecipe = recipe.get().id();
+        craftRecipe = recipe.id();
         progress.set(0, 0);
-        progress.set(1, CraftTime.ticks(player, recipe.get(), grid().input().ingredientCount()));
+        progress.set(1, CraftTime.ticks(player, recipe, grid().input().ingredientCount()));
     }
 
     /**
@@ -144,7 +159,6 @@ public class WorkbenchMenu extends AbstractContainerMenu
         if (!sameItems(gridItems(), craftItems))
         {
             stopCraft();
-            player.displayClientMessage(Component.translatable("legacycrafting.message.items_changed"), true);
             return;
         }
         final int elapsed = progress.get(0) + 1;
@@ -156,10 +170,17 @@ public class WorkbenchMenu extends AbstractContainerMenu
         if (elapsed >= total)
         {
             final ResourceLocation recipe = craftRecipe;
+            final List<ItemStack> before = craftItems;
+            final int left = progress.get(2) - 1;
             stopCraft();
-            if (!finish(player, recipe))
+            if (finish(player, recipe) && left > 0 && refill(player, before))
             {
-                player.displayClientMessage(Component.translatable("legacycrafting.message.no_recipe"), true);
+                final Optional<RecipeHolder<CraftingRecipe>> next = findRecipe(player.serverLevel(), recipe);
+                if (next.isPresent() && next.get().id().equals(recipe))
+                {
+                    progress.set(2, left);
+                    begin(player, next.get());
+                }
             }
         }
     }
@@ -168,6 +189,7 @@ public class WorkbenchMenu extends AbstractContainerMenu
     {
         progress.set(0, 0);
         progress.set(1, 0);
+        progress.set(2, 0);
         craftItems = List.of();
         craftRecipe = null;
     }
@@ -269,6 +291,43 @@ public class WorkbenchMenu extends AbstractContainerMenu
         }
         level.playSound(null, pos, SoundEvents.VILLAGER_WORK_TOOLSMITH, SoundSource.PLAYERS, 0.8f, 1.0f);
         return true;
+    }
+
+    /**
+     * Puts one item like the one it held before the craft, taken from the player's inventory, in each grid cell the
+     * craft emptied. Cells still holding something (the rest of a stack, a damaged tool) are left as they are.
+     *
+     * @return false if the inventory lacks one of the items.
+     */
+    private boolean refill(final ServerPlayer player, final List<ItemStack> before)
+    {
+        final Inventory inventory = player.getInventory();
+        for (int slot = 0; slot < GRID_SLOTS; slot++)
+        {
+            if (before.get(slot).isEmpty() || !container.getItem(slot).isEmpty())
+            {
+                continue;
+            }
+            final int found = findInInventory(inventory, before.get(slot));
+            if (found < 0)
+            {
+                return false;
+            }
+            container.setItem(slot, inventory.removeItem(found, 1));
+        }
+        return true;
+    }
+
+    private static int findInInventory(final Inventory inventory, final ItemStack wanted)
+    {
+        for (int slot = 0; slot < inventory.items.size(); slot++)
+        {
+            if (ItemStack.isSameItem(inventory.getItem(slot), wanted))
+            {
+                return slot;
+            }
+        }
+        return -1;
     }
 
     private static void give(final Player player, final ItemStack stack)

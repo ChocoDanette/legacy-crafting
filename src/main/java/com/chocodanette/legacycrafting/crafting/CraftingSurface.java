@@ -16,10 +16,12 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Method;
 
 /**
- * A block holding four items laid out as a 2x2 grid on the ground: TFC's placed items (key V).
+ * A block holding four items laid out as a 2x2 grid on the ground (key V): TFC's placed items, or this mod's own
+ * ({@code legacycrafting:placed_items}) without TFC.
  * <p>
- * TFC does not expose this inventory as a capability, and the pack is built without TFC on the classpath: its block
- * entity is read through its public methods {@code getInventory()} and {@code holdingLargeItem()}.
+ * TFC does not expose this inventory as a capability, and the mod is built without TFC on the classpath: the block
+ * entity is read through its public methods {@code getInventory()} and {@code holdingLargeItem()}, which this mod's
+ * own block entity has too.
  */
 public final class CraftingSurface
 {
