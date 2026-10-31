@@ -5,13 +5,20 @@ import com.chocodanette.legacycrafting.network.CraftProgressPayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
@@ -28,14 +35,17 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
  * Crafts the items laid on a {@link CraftingSurface}: the player presses the craft key, stays close for the time of the
- * recipe, and the result drops on the surface.
+ * recipe, and the result drops on the surface. While the key is held, the craft starts again with the same items taken
+ * from the player's inventory.
  */
 public final class InWorldCrafting
 {
@@ -43,6 +53,11 @@ public final class InWorldCrafting
      * Crafts in progress, by player.
      */
     private static final Map<UUID, Craft> CRAFTS = new HashMap<>();
+
+    /**
+     * Players holding the craft key down.
+     */
+    private static final Set<UUID> HOLDING = new HashSet<>();
 
     private InWorldCrafting()
     {
@@ -53,6 +68,18 @@ public final class InWorldCrafting
      */
     private record Craft(BlockPos pos, Direction facing, ResourceLocation recipe, List<ItemStack> items, int totalTicks, int[] elapsed)
     {
+    }
+
+    public static void setHolding(final ServerPlayer player, final boolean held)
+    {
+        if (held)
+        {
+            HOLDING.add(player.getUUID());
+        }
+        else
+        {
+            HOLDING.remove(player.getUUID());
+        }
     }
 
     /**
@@ -112,9 +139,15 @@ public final class InWorldCrafting
         }
 
         final int elapsed = ++craft.elapsed[0];
-        if (elapsed % 10 == 0)
+        if (elapsed % 10 == 1)
         {
-            player.serverLevel().playSound(null, craft.pos, SoundEvents.WOOD_HIT, SoundSource.PLAYERS, 0.4f, 1.2f);
+            player.serverLevel().playSound(null, craft.pos, workSound(craft.items), SoundSource.PLAYERS, 0.5f,
+              0.9f + player.getRandom().nextFloat() * 0.3f);
+            player.swing(InteractionHand.MAIN_HAND, true);
+        }
+        if (elapsed % 4 == 0)
+        {
+            showWork(player.serverLevel(), craft);
         }
         if (elapsed < craft.totalTicks)
         {
@@ -126,10 +159,26 @@ public final class InWorldCrafting
         }
 
         CRAFTS.remove(player.getUUID());
-        PacketDistributor.sendToPlayer(player, new CraftProgressPayload(-1f));
-        if (!finish(player, surface, craft.facing, craft.recipe))
+        final boolean repeat = HOLDING.contains(player.getUUID());
+        final Finish finish = finish(player, surface, craft.facing, craft.recipe, repeat);
+        if (finish == Finish.FAILED)
         {
+            PacketDistributor.sendToPlayer(player, new CraftProgressPayload(-1f));
             player.displayClientMessage(Component.translatable("legacycrafting.message.no_recipe"), true);
+            return;
+        }
+        final CraftingSurface next = finish == Finish.REFILLED ? CraftingSurface.find(player.serverLevel(), craft.pos) : null;
+        if (next != null && findRecipe(player.serverLevel(), SurfaceGrid.of(next, craft.facing), craft.recipe)
+          .filter(recipe -> recipe.id().equals(craft.recipe)).isPresent())
+        {
+            CRAFTS.put(player.getUUID(), new Craft(craft.pos, craft.facing, craft.recipe, snapshot(next), craft.totalTicks, new int[1]));
+            PacketDistributor.sendToPlayer(player, new CraftProgressPayload(0f));
+            return;
+        }
+        PacketDistributor.sendToPlayer(player, new CraftProgressPayload(-1f));
+        if (repeat)
+        {
+            player.displayClientMessage(Component.translatable("legacycrafting.message.no_more_items"), true);
         }
     }
 
@@ -137,6 +186,7 @@ public final class InWorldCrafting
     public static void onLogout(final PlayerEvent.PlayerLoggedOutEvent event)
     {
         CRAFTS.remove(event.getEntity().getUUID());
+        HOLDING.remove(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
@@ -148,27 +198,33 @@ public final class InWorldCrafting
         }
     }
 
+    private enum Finish
+    {
+        FAILED,
+        DONE,
+        REFILLED
+    }
+
     /**
      * Consumes the ingredients, leaves the remainders (damaged tools, empty buckets) in place and drops the result.
-     *
-     * @return false if the items no longer make a recipe.
+     * With {@code refill}, puts the same ingredients back from the player's inventory, before the surface can go away.
      */
-    private static boolean finish(final ServerPlayer player, final CraftingSurface surface, final Direction facing,
-      final ResourceLocation recipeId)
+    private static Finish finish(final ServerPlayer player, final CraftingSurface surface, final Direction facing,
+      final ResourceLocation recipeId, final boolean refill)
     {
         final ServerLevel level = player.serverLevel();
         final SurfaceGrid grid = SurfaceGrid.of(surface, facing);
         final Optional<RecipeHolder<CraftingRecipe>> found = findRecipe(level, grid, recipeId);
         if (found.isEmpty() || !found.get().id().equals(recipeId))
         {
-            return false;
+            return Finish.FAILED;
         }
         final CraftingRecipe recipe = found.get().value();
         final CraftingInput input = grid.input();
         final ItemStack result = recipe.assemble(input, level.registryAccess());
         if (result.isEmpty())
         {
-            return false;
+            return Finish.FAILED;
         }
 
         // TFC damages tools and gives extra products to the crafting player.
@@ -177,6 +233,7 @@ public final class InWorldCrafting
         CommonHooks.setCraftingPlayer(null);
 
         final List<ItemStack> used = new ArrayList<>();
+        final List<Integer> usedSlots = new ArrayList<>();
         final Vec3 drop = Vec3.atBottomCenterOf(surface.pos()).add(0, 0.25, 0);
         for (int index = 0; index < input.size(); index++)
         {
@@ -187,6 +244,7 @@ public final class InWorldCrafting
             final int slot = grid.slot(index);
             final ItemStack stack = surface.get(slot).copy();
             used.add(stack.copyWithCount(1));
+            usedSlots.add(slot);
             stack.shrink(1);
             final ItemStack remainder = index < remainders.size() ? remainders.get(index) : ItemStack.EMPTY;
             if (stack.isEmpty())
@@ -199,6 +257,7 @@ public final class InWorldCrafting
                 spawn(level, drop, remainder);
             }
         }
+        final boolean refilled = refill && refill(player, surface, usedSlots, used);
         surface.removeIfEmpty();
 
         result.onCraftedBy(level, player, result.getCount());
@@ -206,7 +265,85 @@ public final class InWorldCrafting
         EventHooks.firePlayerCraftingEvent(player, result, new SimpleContainer(used.toArray(ItemStack[]::new)));
         spawn(level, drop, result);
         level.playSound(null, surface.pos(), SoundEvents.VILLAGER_WORK_TOOLSMITH, SoundSource.PLAYERS, 0.8f, 1.0f);
+        return refilled ? Finish.REFILLED : Finish.DONE;
+    }
+
+    /**
+     * Puts one item like each used ingredient, taken from the player's inventory, in each quarter the craft emptied.
+     * Quarters still holding something (the rest of a stack, a damaged tool) are left as they are.
+     *
+     * @return false if the inventory lacks one of the items.
+     */
+    private static boolean refill(final ServerPlayer player, final CraftingSurface surface, final List<Integer> slots, final List<ItemStack> used)
+    {
+        final Inventory inventory = player.getInventory();
+        for (int index = 0; index < slots.size(); index++)
+        {
+            final int slot = slots.get(index);
+            if (!surface.get(slot).isEmpty())
+            {
+                continue;
+            }
+            final int found = findInInventory(inventory, used.get(index));
+            if (found < 0)
+            {
+                return false;
+            }
+            surface.set(slot, inventory.removeItem(found, 1));
+        }
         return true;
+    }
+
+    /**
+     * Compares items only, like {@link #sameItems}: TFC food in the inventory has another creation date.
+     */
+    private static int findInInventory(final Inventory inventory, final ItemStack wanted)
+    {
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++)
+        {
+            if (ItemStack.isSameItem(inventory.getItem(slot), wanted))
+            {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Wood sounds like the saw (an axe stripping a log), blocks like being hit, other items like rustling leather.
+     */
+    private static SoundEvent workSound(final List<ItemStack> items)
+    {
+        for (final ItemStack stack : items)
+        {
+            if (stack.is(ItemTags.LOGS) || stack.is(ItemTags.PLANKS))
+            {
+                return SoundEvents.AXE_STRIP;
+            }
+        }
+        for (final ItemStack stack : items)
+        {
+            if (stack.getItem() instanceof final BlockItem block)
+            {
+                return block.getBlock().defaultBlockState().getSoundType().getHitSound();
+            }
+        }
+        return SoundEvents.ARMOR_EQUIP_LEATHER.value();
+    }
+
+    /**
+     * Bits of one of the ingredients fly off the surface.
+     */
+    private static void showWork(final ServerLevel level, final Craft craft)
+    {
+        final List<ItemStack> items = craft.items.stream().filter(stack -> !stack.isEmpty()).toList();
+        if (items.isEmpty())
+        {
+            return;
+        }
+        final ItemStack shown = items.get(level.getRandom().nextInt(items.size())).copyWithCount(1);
+        final Vec3 center = Vec3.atBottomCenterOf(craft.pos);
+        level.sendParticles(new ItemParticleOption(ParticleTypes.ITEM, shown), center.x, center.y + 0.15, center.z, 3, 0.2, 0.05, 0.2, 0.05);
     }
 
     /**

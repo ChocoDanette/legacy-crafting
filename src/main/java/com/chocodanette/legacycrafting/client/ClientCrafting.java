@@ -4,6 +4,7 @@ import com.chocodanette.legacycrafting.LegacyCrafting;
 import com.chocodanette.legacycrafting.ModBlocks;
 import com.chocodanette.legacycrafting.ModMenus;
 import com.chocodanette.legacycrafting.ground.GroundPlacing;
+import com.chocodanette.legacycrafting.network.HoldCraftPayload;
 import com.chocodanette.legacycrafting.network.PlaceItemPayload;
 import com.chocodanette.legacycrafting.network.StartCraftPayload;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -41,6 +42,11 @@ public final class ClientCrafting
       InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "key.categories.legacycrafting");
 
     private static final int BAR_WIDTH = 40;
+
+    /**
+     * Whether the server was last told that the craft key is held.
+     */
+    private static boolean craftHeld;
 
     private ClientCrafting()
     {
@@ -87,6 +93,12 @@ public final class ClientCrafting
         {
             final Minecraft minecraft = Minecraft.getInstance();
             GroundPreview.tick(minecraft);
+            final boolean held = CRAFT.isDown() && minecraft.screen == null;
+            if (held != craftHeld && minecraft.getConnection() != null)
+            {
+                craftHeld = held;
+                PacketDistributor.sendToServer(new HoldCraftPayload(held));
+            }
             while (PLACE.consumeClick())
             {
                 if (GroundPlacing.enabled() && minecraft.player != null && minecraft.hitResult instanceof final BlockHitResult hit
@@ -118,6 +130,7 @@ public final class ClientCrafting
         public static void onLogout(final ClientPlayerNetworkEvent.LoggingOut event)
         {
             CraftProgressOverlay.setProgress(-1f);
+            craftHeld = false;
         }
     }
 

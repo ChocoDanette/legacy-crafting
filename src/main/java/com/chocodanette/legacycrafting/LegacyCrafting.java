@@ -3,6 +3,7 @@ package com.chocodanette.legacycrafting;
 import com.chocodanette.legacycrafting.crafting.InWorldCrafting;
 import com.chocodanette.legacycrafting.crafting.InventoryGrid;
 import com.chocodanette.legacycrafting.network.CraftProgressPayload;
+import com.chocodanette.legacycrafting.network.HoldCraftPayload;
 import com.chocodanette.legacycrafting.network.PlaceItemPayload;
 import com.chocodanette.legacycrafting.network.StartCraftPayload;
 import com.chocodanette.legacycrafting.network.WorkbenchCraftPayload;
@@ -52,6 +53,7 @@ public class LegacyCrafting
     {
         event.registrar("1")
           .playToServer(StartCraftPayload.TYPE, StartCraftPayload.STREAM_CODEC, StartCraftPayload::handle)
+          .playToServer(HoldCraftPayload.TYPE, HoldCraftPayload.STREAM_CODEC, HoldCraftPayload::handle)
           .playToServer(PlaceItemPayload.TYPE, PlaceItemPayload.STREAM_CODEC, PlaceItemPayload::handle)
           .playToServer(WorkbenchCraftPayload.TYPE, WorkbenchCraftPayload.STREAM_CODEC, WorkbenchCraftPayload::handle)
           .playToClient(CraftProgressPayload.TYPE, CraftProgressPayload.STREAM_CODEC, CraftProgressPayload::handle);

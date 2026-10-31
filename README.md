@@ -13,7 +13,8 @@ without TerraFirmaCraft 4.2.
    where you stand: the two quarters farther from you are the top row.
 3. Stay within 3 blocks while the bar under the crosshair fills (1 to 5 seconds, depending on the recipe). Walking away
    or changing the items stops the craft.
-4. The result drops on the block. Ingredients are used up; remainders (a damaged tool, an empty bucket) stay in place.
+4. Hold the craft key to craft again and again: the emptied quarters are refilled from your inventory with the same
+   items, until one runs out. The result drops on the block. Ingredients are used up; remainders (a damaged tool, an empty bucket) stay in place.
 
 Workbenches (the vanilla crafting table and TFC's workbenches) keep their items. Lay a 3x3 recipe, then press "Craft"
 (or the craft key): the arrow fills over the same time, the window must stay open, and the result lands in the result

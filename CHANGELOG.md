@@ -12,6 +12,11 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
   up; the block drops its items when broken and goes away with its last item. With TFC, TFC's placed items are used as
   before and the key is not registered, so the two never compete for V. Server config `groundPlacing` (true by default)
   turns it off.
+- Holding the craft key down repeats the craft: when a craft on the ground ends, each quarter it emptied gets the same
+  item again from the player's inventory, and the same recipe starts again. It stops when the key is released or an
+  item runs out ("no more of these items" message).
+- Crafting sounds and visuals: the sound depends on the ingredients (wood: an axe stripping a log; blocks: their hit
+  sound; other items: rustling leather), the player's arm swings, and bits of the ingredients fly off the ground.
 - Released under the MIT license (`LICENSE`).
 - The mod list shows a logo and links to the source and the issue tracker.
 
