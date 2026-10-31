@@ -4,6 +4,10 @@ Each version is published as a GitHub release with its jar. To release, set `mod
 `gradle.properties`, add its section below, merge to `main`, then run the Release workflow
 from the Actions tab (it creates the tag `v<mod_version>`), or push that tag yourself.
 
+## 0.5.1
+
+- New logo in the mod list: the workbench with its items and a pickaxe coming out of the progress ring.
+
 ## 0.5.0
 
 - The mod works without TerraFirmaCraft. Without TFC, it places items on the ground itself: the place key (V by
