@@ -4,10 +4,8 @@
   "key.legacycrafting.place": "Place item on the ground",
   "block.legacycrafting.placed_items": "Placed Items",
   "attribute.name.legacycrafting.crafting_time": "Crafting Time",
-  "legacycrafting.message.no_recipe": "No recipe matches these items",
-  "legacycrafting.message.items_changed": "Crafting stopped: the items changed",
-  "legacycrafting.message.too_far": "Crafting stopped: you walked away",
-  "legacycrafting.message.no_more_items": "Crafting stopped: no more of these items in your inventory",
   "legacycrafting.button.craft": "Craft",
+  "legacycrafting.button.min": "Craft once",
+  "legacycrafting.button.max": "Craft as many as the grid allows",
   "legacycrafting.preview.choice": "Result %s of %s (scroll or arrows to change)"
 }

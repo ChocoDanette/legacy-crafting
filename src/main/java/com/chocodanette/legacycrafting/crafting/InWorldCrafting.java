@@ -7,7 +7,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -105,7 +104,7 @@ public final class InWorldCrafting
         final Optional<RecipeHolder<CraftingRecipe>> recipe = findRecipe(level, grid, chosen.orElse(null));
         if (recipe.isEmpty())
         {
-            stop(player, Component.translatable("legacycrafting.message.no_recipe"));
+            stop(player);
             return;
         }
 
@@ -129,12 +128,12 @@ public final class InWorldCrafting
         final CraftingSurface surface = CraftingSurface.find(player.serverLevel(), craft.pos);
         if (!player.isAlive() || surface == null || !sameItems(snapshot(surface), craft.items))
         {
-            stop(player, Component.translatable("legacycrafting.message.items_changed"));
+            stop(player);
             return;
         }
         if (!isClose(player, craft.pos))
         {
-            stop(player, Component.translatable("legacycrafting.message.too_far"));
+            stop(player);
             return;
         }
 
@@ -164,7 +163,6 @@ public final class InWorldCrafting
         if (finish == Finish.FAILED)
         {
             PacketDistributor.sendToPlayer(player, new CraftProgressPayload(-1f));
-            player.displayClientMessage(Component.translatable("legacycrafting.message.no_recipe"), true);
             return;
         }
         final CraftingSurface next = finish == Finish.REFILLED ? CraftingSurface.find(player.serverLevel(), craft.pos) : null;
@@ -176,10 +174,6 @@ public final class InWorldCrafting
             return;
         }
         PacketDistributor.sendToPlayer(player, new CraftProgressPayload(-1f));
-        if (repeat)
-        {
-            player.displayClientMessage(Component.translatable("legacycrafting.message.no_more_items"), true);
-        }
     }
 
     @SubscribeEvent
@@ -194,7 +188,7 @@ public final class InWorldCrafting
     {
         if (event.getEntity() instanceof final ServerPlayer player && CRAFTS.containsKey(player.getUUID()))
         {
-            stop(player, Component.translatable("legacycrafting.message.too_far"));
+            stop(player);
         }
     }
 
@@ -387,13 +381,12 @@ public final class InWorldCrafting
         return true;
     }
 
-    private static void stop(final ServerPlayer player, final Component reason)
+    private static void stop(final ServerPlayer player)
     {
         if (CRAFTS.remove(player.getUUID()) != null)
         {
             PacketDistributor.sendToPlayer(player, new CraftProgressPayload(-1f));
         }
-        player.displayClientMessage(reason, true);
     }
 
     private static void spawn(final ServerLevel level, final Vec3 pos, final ItemStack stack)

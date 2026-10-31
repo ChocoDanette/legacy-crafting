@@ -4,10 +4,8 @@
   "key.legacycrafting.place": "Poser un objet au sol",
   "block.legacycrafting.placed_items": "Objets posés",
   "attribute.name.legacycrafting.crafting_time": "Temps de fabrication",
-  "legacycrafting.message.no_recipe": "Aucune recette ne correspond à ces objets",
-  "legacycrafting.message.items_changed": "Fabrication interrompue : les objets ont changé",
-  "legacycrafting.message.too_far": "Fabrication interrompue : tu t'es éloigné",
-  "legacycrafting.message.no_more_items": "Fabrication terminée : plus de ces objets dans ton inventaire",
   "legacycrafting.button.craft": "Fabriquer",
+  "legacycrafting.button.min": "Fabriquer une fois",
+  "legacycrafting.button.max": "Fabriquer autant que la grille le permet",
   "legacycrafting.preview.choice": "Résultat %s sur %s (molette ou flèches pour changer)"
 }

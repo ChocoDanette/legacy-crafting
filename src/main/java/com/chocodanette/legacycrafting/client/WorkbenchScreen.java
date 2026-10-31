@@ -4,9 +4,11 @@ import com.chocodanette.legacycrafting.network.WorkbenchCraftPayload;
 import com.chocodanette.legacycrafting.workbench.WorkbenchMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingRecipe;
@@ -18,12 +20,16 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The window of a workbench: the vanilla crafting table layout, with a craft button, the progress of the craft over
- * the arrow, and a preview of the result above it. When the grid matches several recipes, arrows pick the one to craft.
+ * The window of a workbench: the vanilla crafting table layout, with a craft button and the quantity to craft, the
+ * progress of the craft filling the arrow, and a preview of the result above it. When the grid matches several recipes,
+ * arrows pick the one to craft.
  */
 public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
 {
     private static final ResourceLocation TEXTURE = ResourceLocation.withDefaultNamespace("textures/gui/container/crafting_table.png");
+    private static final ResourceLocation PROGRESS_SPRITE = ResourceLocation.withDefaultNamespace("container/furnace/burn_progress");
+    private static final int QUANTITY_X = 137;
+    private static final int QUANTITY_Y = 61;
     private static final int PREVIEW_X = 93;
     private static final int PREVIEW_Y = 16;
 
@@ -31,6 +37,7 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
     private List<ItemStack> results = List.of();
     private List<ItemStack> lastGrid = List.of();
     private int selected;
+    private int quantity = 1;
     private Button previous;
     private Button next;
 
@@ -45,7 +52,21 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
         super.init();
         titleLabelX = 29;
         addRenderableWidget(Button.builder(Component.translatable("legacycrafting.button.craft"), button -> craft())
-          .bounds(leftPos + 86, topPos + 59, 54, 14)
+          .bounds(leftPos + 118, topPos + 15, 52, 13)
+          .build());
+        addRenderableWidget(Button.builder(Component.literal("--"), button -> quantity = 1)
+          .bounds(leftPos + 108, topPos + 59, 12, 12)
+          .tooltip(Tooltip.create(Component.translatable("legacycrafting.button.min")))
+          .build());
+        addRenderableWidget(Button.builder(Component.literal("-"), button -> quantity = Math.max(1, quantity - 1))
+          .bounds(leftPos + 121, topPos + 59, 10, 12)
+          .build());
+        addRenderableWidget(Button.builder(Component.literal("+"), button -> quantity = Math.min(maxQuantity(), quantity + 1))
+          .bounds(leftPos + 143, topPos + 59, 10, 12)
+          .build());
+        addRenderableWidget(Button.builder(Component.literal("++"), button -> quantity = maxQuantity())
+          .bounds(leftPos + 154, topPos + 59, 12, 12)
+          .tooltip(Tooltip.create(Component.translatable("legacycrafting.button.max")))
           .build());
         previous = addRenderableWidget(Button.builder(Component.literal("<"), button -> select(selected - 1))
           .bounds(leftPos + PREVIEW_X - 9, topPos + PREVIEW_Y + 2, 8, 12)
@@ -60,7 +81,25 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
     private void craft()
     {
         final Optional<ResourceLocation> recipe = recipes.isEmpty() ? Optional.empty() : Optional.of(recipes.get(selected).id());
-        PacketDistributor.sendToServer(new WorkbenchCraftPayload(recipe));
+        PacketDistributor.sendToServer(new WorkbenchCraftPayload(recipe, Math.min(quantity, maxQuantity())));
+    }
+
+    /**
+     * How many times the grid can make its recipe: the smallest stack of the grid, not counting tools, which come back
+     * damaged after each craft.
+     */
+    private int maxQuantity()
+    {
+        int max = WorkbenchMenu.MAX_QUANTITY;
+        for (int slot = 0; slot < WorkbenchMenu.GRID_SLOTS; slot++)
+        {
+            final ItemStack stack = menu.getSlot(slot).getItem();
+            if (!stack.isEmpty() && !stack.isDamageableItem())
+            {
+                max = Math.min(max, stack.getCount());
+            }
+        }
+        return Math.max(1, max);
     }
 
     private void select(final int index)
@@ -105,6 +144,7 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
             }
         }
         previous.visible = next.visible = recipes.size() > 1;
+        quantity = Math.clamp(quantity, 1, maxQuantity());
     }
 
     private ItemStack result(final RecipeHolder<CraftingRecipe> recipe)
@@ -197,11 +237,12 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
         final float progress = menu.progress();
         if (progress >= 0)
         {
-            // Over the arrow, from left to right.
-            final int x = leftPos + 89;
-            final int y = topPos + 34;
-            graphics.fill(x, y, x + Math.round(24 * Math.min(progress, 1f)), y + 17, 0x90E0B040);
+            // Fills the arrow from left to right, like a furnace.
+            final int width = Mth.ceil(24 * Math.min(progress, 1f));
+            graphics.blitSprite(PROGRESS_SPRITE, 24, 16, 0, 0, leftPos + 89, topPos + 34, width, 16);
         }
+        final int shown = menu.remaining() > 0 ? menu.remaining() : quantity;
+        graphics.drawCenteredString(font, String.valueOf(shown), leftPos + QUANTITY_X, topPos + QUANTITY_Y + 2, 0xFFFFFF);
         final ItemStack preview = preview();
         if (!preview.isEmpty())
         {

@@ -14,9 +14,14 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
   turns it off.
 - Holding the craft key down repeats the craft: when a craft on the ground ends, each quarter it emptied gets the same
   item again from the player's inventory, and the same recipe starts again. It stops when the key is released or an
-  item runs out ("no more of these items" message).
+  item runs out.
 - Crafting sounds and visuals: the sound depends on the ingredients (wood: an axe stripping a log; blocks: their hit
   sound; other items: rustling leather), the player's arm swings, and bits of the ingredients fly off the ground.
+- No more messages on screen: a craft that cannot start or stops just ends quietly.
+- Workbench window: the progress fills the arrow like a furnace's. A quantity, set with "-" and "+" (one less, one
+  more), "--" (1) and "++" (as many as the grid allows, tools aside, 64 at most): the Craft button, now above the
+  result, crafts the recipe that many times in a row, and the number counts down while it works.
+- The items laid in a workbench's grid show on top of the block, for every player who sees it.
 - Released under the MIT license (`LICENSE`).
 - The mod list shows a logo and links to the source and the issue tracker.
 
