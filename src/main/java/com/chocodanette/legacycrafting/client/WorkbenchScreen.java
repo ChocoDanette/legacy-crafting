@@ -20,7 +20,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The window of a workbench: the vanilla crafting table layout, with a craft button and the quantity to craft, the
+ * The window of a workbench: the vanilla crafting table layout, with a craft button, a side panel setting how many
+ * items to craft (in steps of the recipe's result), the
  * progress of the craft filling the arrow, and a preview of the result above it. When the grid matches several recipes,
  * arrows pick the one to craft.
  */
@@ -28,8 +29,9 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
 {
     private static final ResourceLocation TEXTURE = ResourceLocation.withDefaultNamespace("textures/gui/container/crafting_table.png");
     private static final ResourceLocation PROGRESS_SPRITE = ResourceLocation.withDefaultNamespace("container/furnace/burn_progress");
-    private static final int QUANTITY_X = 116;
-    private static final int QUANTITY_Y = 74;
+    private static final int PANEL_WIDTH = 32;
+    private static final int PANEL_HEIGHT = 82;
+    private static final int MAX_ITEMS = 64;
     private static final int PREVIEW_X = 93;
     private static final int PREVIEW_Y = 16;
 
@@ -37,7 +39,10 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
     private List<ItemStack> results = List.of();
     private List<ItemStack> lastGrid = List.of();
     private int selected;
-    private int quantity = 1;
+    /**
+     * How many times to craft the recipe in a row.
+     */
+    private int crafts = 1;
     private Button previous;
     private Button next;
 
@@ -54,16 +59,22 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
         addRenderableWidget(Button.builder(Component.translatable("legacycrafting.button.craft"), button -> craft())
           .bounds(leftPos + 86, topPos + 59, 54, 14)
           .build());
-        final SmallButton min = addRenderableWidget(new SmallButton(leftPos + 86, topPos + QUANTITY_Y, 12, 9, Component.literal("--"),
-          button -> quantity = 1));
-        min.setTooltip(Tooltip.create(Component.translatable("legacycrafting.button.min")));
-        addRenderableWidget(new SmallButton(leftPos + 99, topPos + QUANTITY_Y, 10, 9, Component.literal("-"),
-          button -> quantity = Math.max(1, quantity - 1)));
-        addRenderableWidget(new SmallButton(leftPos + 123, topPos + QUANTITY_Y, 10, 9, Component.literal("+"),
-          button -> quantity = Math.min(maxQuantity(), quantity + 1)));
-        final SmallButton max = addRenderableWidget(new SmallButton(leftPos + 134, topPos + QUANTITY_Y, 12, 9, Component.literal("++"),
-          button -> quantity = maxQuantity()));
-        max.setTooltip(Tooltip.create(Component.translatable("legacycrafting.button.max")));
+        // Side panel, right of the window: ++, +, the quantity, -, --.
+        final int x = panelX() + 4;
+        addRenderableWidget(Button.builder(Component.literal("++"), button -> crafts = maxCrafts())
+          .bounds(x, topPos + 4, 24, 14)
+          .tooltip(Tooltip.create(Component.translatable("legacycrafting.button.max")))
+          .build());
+        addRenderableWidget(Button.builder(Component.literal("+"), button -> crafts = Math.min(maxCrafts(), crafts + 1))
+          .bounds(x, topPos + 20, 24, 14)
+          .build());
+        addRenderableWidget(Button.builder(Component.literal("-"), button -> crafts = Math.max(1, crafts - 1))
+          .bounds(x, topPos + 48, 24, 14)
+          .build());
+        addRenderableWidget(Button.builder(Component.literal("--"), button -> crafts = 1)
+          .bounds(x, topPos + 64, 24, 14)
+          .tooltip(Tooltip.create(Component.translatable("legacycrafting.button.min")))
+          .build());
         previous = addRenderableWidget(Button.builder(Component.literal("<"), button -> select(selected - 1))
           .bounds(leftPos + PREVIEW_X - 9, topPos + PREVIEW_Y + 2, 8, 12)
           .build());
@@ -77,15 +88,28 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
     private void craft()
     {
         final Optional<ResourceLocation> recipe = recipes.isEmpty() ? Optional.empty() : Optional.of(recipes.get(selected).id());
-        PacketDistributor.sendToServer(new WorkbenchCraftPayload(recipe, Math.min(quantity, maxQuantity())));
+        PacketDistributor.sendToServer(new WorkbenchCraftPayload(recipe, Math.min(crafts, maxCrafts())));
+    }
+
+    private int panelX()
+    {
+        return leftPos + imageWidth + 2;
     }
 
     /**
-     * How many times the recipe can be made from the grid and the player's inventory, which refills the grid between
-     * crafts: for each ingredient, the items of the grid and the inventory divided by the cells it fills. Tools are not
+     * Items made by one craft of the chosen recipe.
+     */
+    private int perCraft()
+    {
+        return Math.max(1, preview().getCount());
+    }
+
+    /**
+     * How many times the recipe can be made in a row, for at most 64 items: from the grid and the player's inventory,
+     * which refills the grid between crafts, each ingredient's items divided by the cells it fills. Tools are not
      * counted, as they come back damaged after each craft.
      */
-    private int maxQuantity()
+    private int maxCrafts()
     {
         final List<ItemStack> kinds = new ArrayList<>();
         final List<Integer> cells = new ArrayList<>();
@@ -107,7 +131,7 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
                 cells.set(kind, cells.get(kind) + 1);
             }
         }
-        int max = WorkbenchMenu.MAX_QUANTITY;
+        int max = Math.min(WorkbenchMenu.MAX_QUANTITY, MAX_ITEMS / perCraft());
         for (int kind = 0; kind < kinds.size(); kind++)
         {
             int available = 0;
@@ -178,7 +202,7 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
             }
         }
         previous.visible = next.visible = recipes.size() > 1;
-        quantity = Math.clamp(quantity, 1, maxQuantity());
+        crafts = Math.clamp(crafts, 1, maxCrafts());
     }
 
     private ItemStack result(final RecipeHolder<CraftingRecipe> recipe)
@@ -229,7 +253,41 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
             select(selected - (int) Math.signum(scrollY));
             return true;
         }
+        if (isOverPanel(mouseX, mouseY))
+        {
+            crafts = Math.clamp(crafts + (int) Math.signum(scrollY), 1, maxCrafts());
+            return true;
+        }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    /**
+     * The side panel in the look of the window, with the number of items to craft (or left to craft) between its buttons.
+     */
+    private void renderPanel(final GuiGraphics graphics)
+    {
+        final int x = panelX();
+        final int y = topPos;
+        graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, 0xFF000000);
+        graphics.fill(x + 1, y + 1, x + PANEL_WIDTH - 1, y + PANEL_HEIGHT - 1, 0xFFC6C6C6);
+        graphics.fill(x + 1, y + 1, x + PANEL_WIDTH - 2, y + 2, 0xFFFFFFFF);
+        graphics.fill(x + 1, y + 1, x + 2, y + PANEL_HEIGHT - 2, 0xFFFFFFFF);
+        graphics.fill(x + 2, y + PANEL_HEIGHT - 2, x + PANEL_WIDTH - 1, y + PANEL_HEIGHT - 1, 0xFF555555);
+        graphics.fill(x + PANEL_WIDTH - 2, y + 2, x + PANEL_WIDTH - 1, y + PANEL_HEIGHT - 1, 0xFF555555);
+        final int craftsShown = menu.remaining() > 0 ? menu.remaining() : crafts;
+        final String text = String.valueOf(craftsShown * perCraft());
+        graphics.drawString(font, text, x + (PANEL_WIDTH - font.width(text)) / 2, y + 37, 0x404040, false);
+    }
+
+    @Override
+    protected boolean hasClickedOutside(final double mouseX, final double mouseY, final int left, final int top, final int button)
+    {
+        return super.hasClickedOutside(mouseX, mouseY, left, top, button) && !isOverPanel(mouseX, mouseY);
+    }
+
+    private boolean isOverPanel(final double mouseX, final double mouseY)
+    {
+        return mouseX >= panelX() && mouseX < panelX() + PANEL_WIDTH && mouseY >= topPos && mouseY < topPos + PANEL_HEIGHT;
     }
 
     private boolean isOverPreview(final double mouseX, final double mouseY)
@@ -275,8 +333,7 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
             final int width = Mth.ceil(24 * Math.min(progress, 1f));
             graphics.blitSprite(PROGRESS_SPRITE, 24, 16, 0, 0, leftPos + 89, topPos + 34, width, 16);
         }
-        final int shown = menu.remaining() > 0 ? menu.remaining() : quantity;
-        graphics.drawCenteredString(font, String.valueOf(shown), leftPos + QUANTITY_X, topPos + QUANTITY_Y + 2, 0xFFFFFF);
+        renderPanel(graphics);
         final ItemStack preview = preview();
         if (!preview.isEmpty())
         {

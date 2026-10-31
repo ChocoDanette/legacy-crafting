@@ -18,10 +18,11 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
 - Crafting sounds and visuals: the sound depends on the ingredients (wood: an axe stripping a log; blocks: their hit
   sound; other items: rustling leather), the player's arm swings, and bits of the ingredients fly off the ground.
 - No more messages on screen: a craft that cannot start or stops just ends quietly.
-- Workbench window: the progress fills the arrow like a furnace's. Under the Craft button, a quantity set with "-" and
-  "+" (one less, one more), "--" (1) and "++" (as many as the grid and the inventory allow, tools aside, 64 at most):
-  Craft makes the recipe that many times in a row, refilling the emptied cells from the player's inventory, and the
-  number counts down while it works.
+- Workbench window: the progress fills the arrow like a furnace's. A panel on the right of the window sets how many
+  items to make, in steps of the recipe's result (a log makes 4, 8, 12... planks): "+" and "-" (one craft more or
+  less, or the mouse wheel over the panel), "++" (as many as the grid and the inventory allow, tools aside, 64 items at
+  most) and "--" (one craft). Craft makes them in a row, refilling the emptied cells from the player's inventory, and
+  the number counts down while it works.
 - The items laid in a workbench's grid show on top of the block, one per cell of the crafting table texture, the top
   row of the grid always to the north, for every player who sees it.
 - Released under the MIT license (`LICENSE`).
