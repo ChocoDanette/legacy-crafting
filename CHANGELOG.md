@@ -4,6 +4,12 @@ Each version is published as a GitHub release with its jar. To release, set `mod
 `gradle.properties`, add its section below, merge to `main`, then run the Release workflow
 from the Actions tab (it creates the tag `v<mod_version>`), or push that tag yourself.
 
+## 0.5.0
+
+- Released under the MIT license (`LICENSE`).
+- TerraFirmaCraft is now a required dependency: the ground grid is made of TFC's placed items.
+- The mod list shows a logo and links to the source and the issue tracker.
+
 ## 0.4.0
 
 - Workbench preview: the result of the grid shows above the arrow before crafting, with its tooltip. When the grid

@@ -38,3 +38,7 @@ the world.
 Released versions are on the Releases page of this repository, each with its jar and changelog (see `CHANGELOG.md`).
 GitHub Actions also builds a test jar on every push: open the latest run in the Actions tab and download
 `legacycrafting-jar`. Local build: `gradle build` (Gradle 8.10+, Java 21). The jar is written to `build/libs/`.
+
+## License
+
+MIT, see `LICENSE`.
