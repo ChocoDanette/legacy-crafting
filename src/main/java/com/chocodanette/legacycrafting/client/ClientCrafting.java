@@ -1,7 +1,10 @@
 package com.chocodanette.legacycrafting.client;
 
 import com.chocodanette.legacycrafting.LegacyCrafting;
+import com.chocodanette.legacycrafting.ModBlocks;
 import com.chocodanette.legacycrafting.ModMenus;
+import com.chocodanette.legacycrafting.ground.GroundPlacing;
+import com.chocodanette.legacycrafting.network.PlaceItemPayload;
 import com.chocodanette.legacycrafting.network.StartCraftPayload;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
@@ -12,9 +15,11 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
@@ -29,6 +34,12 @@ public final class ClientCrafting
     public static final KeyMapping CRAFT = new KeyMapping("key.legacycrafting.craft", KeyConflictContext.IN_GAME,
       InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_R, "key.categories.legacycrafting");
 
+    /**
+     * Places the held item on the ground. Registered only without TerraFirmaCraft, whose own place key is V too.
+     */
+    public static final KeyMapping PLACE = new KeyMapping("key.legacycrafting.place", KeyConflictContext.IN_GAME,
+      InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "key.categories.legacycrafting");
+
     private static final int BAR_WIDTH = 40;
 
     private ClientCrafting()
@@ -42,6 +53,16 @@ public final class ClientCrafting
         public static void onRegisterKeys(final RegisterKeyMappingsEvent event)
         {
             event.register(CRAFT);
+            if (!ModList.get().isLoaded("tfc"))
+            {
+                event.register(PLACE);
+            }
+        }
+
+        @SubscribeEvent
+        public static void onRegisterRenderers(final EntityRenderersEvent.RegisterRenderers event)
+        {
+            event.registerBlockEntityRenderer(ModBlocks.PLACED_ITEMS_ENTITY.get(), context -> new PlacedItemsRenderer());
         }
 
         @SubscribeEvent
@@ -66,6 +87,15 @@ public final class ClientCrafting
         {
             final Minecraft minecraft = Minecraft.getInstance();
             GroundPreview.tick(minecraft);
+            while (PLACE.consumeClick())
+            {
+                if (GroundPlacing.enabled() && minecraft.player != null && minecraft.hitResult instanceof final BlockHitResult hit
+                  && hit.getType() == HitResult.Type.BLOCK && !minecraft.player.getMainHandItem().isEmpty())
+                {
+                    PacketDistributor.sendToServer(new PlaceItemPayload(hit.getBlockPos(), hit.getDirection(),
+                      hit.getLocation().x, hit.getLocation().y, hit.getLocation().z));
+                }
+            }
             while (CRAFT.consumeClick())
             {
                 if (minecraft.player != null && minecraft.hitResult instanceof final BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK)

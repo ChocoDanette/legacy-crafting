@@ -1,5 +1,6 @@
 {
   "values": [
+    "legacycrafting:placed_items",
     {
       "id": "tfc:placed_item",
       "required": false

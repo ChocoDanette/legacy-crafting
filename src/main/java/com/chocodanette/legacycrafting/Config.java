@@ -38,6 +38,11 @@ public final class Config
       .comment("If true, the 2x2 crafting grid of the player's inventory is hidden and cannot be used.")
       .define("disableInventoryCrafting", true);
 
+    public static final ModConfigSpec.BooleanValue GROUND_PLACING = BUILDER
+      .comment("If true, items can be placed on the ground with the place key (V by default), four per block. Only without",
+        "TerraFirmaCraft: with TFC, its own placed items (same key) are used instead.")
+      .define("groundPlacing", true);
+
     public static final ModConfigSpec.BooleanValue WORKBENCH_CRAFTING = BUILDER
       .comment("If true, workbenches (tag legacycrafting:workbenches) keep their items, and their crafts take time like",
         "crafts on the ground.")
@@ -55,6 +60,11 @@ public final class Config
     public static boolean inventoryCraftingDisabled()
     {
         return SPEC.isLoaded() && DISABLE_INVENTORY_CRAFTING.get();
+    }
+
+    public static boolean groundPlacingEnabled()
+    {
+        return SPEC.isLoaded() && GROUND_PLACING.get();
     }
 
     public static boolean workbenchCraftingEnabled()

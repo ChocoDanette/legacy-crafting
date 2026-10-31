@@ -6,8 +6,13 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
 
 ## 0.5.0
 
+- The mod works without TerraFirmaCraft. Without TFC, it places items on the ground itself: the place key (V by
+  default, "Place item on the ground" in the controls) puts one item of the main hand in the quarter of the block the
+  player looks at, four items per block (`legacycrafting:placed_items`). A right click on a quarter picks its item
+  up; the block drops its items when broken and goes away with its last item. With TFC, TFC's placed items are used as
+  before and the key is not registered, so the two never compete for V. Server config `groundPlacing` (true by default)
+  turns it off.
 - Released under the MIT license (`LICENSE`).
-- TerraFirmaCraft is now a required dependency: the ground grid is made of TFC's placed items.
 - The mod list shows a logo and links to the source and the issue tracker.
 
 ## 0.4.0

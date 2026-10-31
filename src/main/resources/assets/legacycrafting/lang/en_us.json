@@ -1,6 +1,8 @@
 {
   "key.categories.legacycrafting": "Legacy Crafting",
   "key.legacycrafting.craft": "Craft (items placed on the ground)",
+  "key.legacycrafting.place": "Place item on the ground",
+  "block.legacycrafting.placed_items": "Placed Items",
   "attribute.name.legacycrafting.crafting_time": "Crafting Time",
   "legacycrafting.message.no_recipe": "No recipe matches these items",
   "legacycrafting.message.items_changed": "Crafting stopped: the items changed",

@@ -1,10 +1,13 @@
 # Legacy Crafting
 
-In-world crafting for the TerraFirmaCraft Legacy modpack (Minecraft 1.21.1, NeoForge 21.1, TerraFirmaCraft 4.2).
+In-world crafting for Minecraft 1.21.1 (NeoForge 21.1), made for the TerraFirmaCraft Legacy modpack. It works with or
+without TerraFirmaCraft 4.2.
 
 ## How it works
 
-1. Place items on the ground with TFC's place key (V by default): a block holds four items, as a 2x2 grid.
+1. Place items on the ground with the place key (V by default): a block holds four items, as a 2x2 grid. With
+   TerraFirmaCraft, this is TFC's own key and placed items; without it, the mod places the items itself, and a right click
+   on an item picks it up.
 2. Look at the items: the result shows under the crosshair. When several recipes match, the mouse wheel chooses one.
    Press the craft key (R by default, "Craft" in the controls). The grid is read as seen from
    where you stand: the two quarters farther from you are the top row.
@@ -22,7 +25,8 @@ the world.
 
 ## For pack makers
 
-- Server config `legacycrafting-server.toml`: base time, time per ingredient, minimum and maximum time, fixed times
+- Server config `legacycrafting-server.toml`: `groundPlacing` (true: without TFC, the place key puts items on the
+  ground), base time, time per ingredient, minimum and maximum time, fixed times
   for some recipes (`recipeSeconds`), the distance at which the craft stops, and `disableInventoryCrafting` (true: the
   inventory has no 2x2 grid).
 - Attribute `legacycrafting:crafting_time` (default 1) multiplies every craft time of a player. A "lazy" trait can add
