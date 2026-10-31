@@ -25,13 +25,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Draws the grid items of the workbenches around the player lying on top of the blocks, three by three, the top row of
- * the grid to the north.
+ * Draws the grid items of the workbenches around the player lying on top of the blocks, one in each cell of the
+ * crafting table's top texture: always the top row of the grid to the north, items upright when seen from the south.
  */
 @EventBusSubscriber(modid = LegacyCrafting.MOD_ID, value = Dist.CLIENT)
 public final class WorkbenchItemsRenderer
 {
     private static final double MAX_DISTANCE_SQ = 48 * 48;
+    private static final double CELL_START = 5.0 / 16;
+    private static final double CELL_STEP = 3.0 / 16;
+    private static final float ITEM_SCALE = 0.17f;
 
     /**
      * Grids of the workbenches sent by the server, by position.
@@ -104,10 +107,12 @@ public final class WorkbenchItemsRenderer
                 final int column = slot % 3;
                 final int row = slot / 3;
                 pose.pushPose();
-                pose.translate(pos.getX() - camera.x + 0.1875 + column * 0.3125, pos.getY() + 1.01 - camera.y,
-                  pos.getZ() - camera.z + 0.1875 + row * 0.3125);
+                // The cells of the texture are 3 pixels apart, centered on pixels 5, 8 and 11.
+                pose.translate(pos.getX() - camera.x + CELL_START + column * CELL_STEP, pos.getY() + 1.01 - camera.y,
+                  pos.getZ() - camera.z + CELL_START + row * CELL_STEP);
                 pose.mulPose(Axis.XP.rotationDegrees(90));
-                pose.scale(0.25f, 0.25f, 0.25f);
+                pose.mulPose(Axis.ZP.rotationDegrees(180));
+                pose.scale(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE);
                 minecraft.getItemRenderer().renderStatic(stack, ItemDisplayContext.FIXED, light,
                   OverlayTexture.NO_OVERLAY, pose, buffers, level, (int) entry.getKey().longValue() + slot);
                 pose.popPose();

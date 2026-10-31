@@ -170,9 +170,10 @@ public class WorkbenchMenu extends AbstractContainerMenu
         if (elapsed >= total)
         {
             final ResourceLocation recipe = craftRecipe;
+            final List<ItemStack> before = craftItems;
             final int left = progress.get(2) - 1;
             stopCraft();
-            if (finish(player, recipe) && left > 0)
+            if (finish(player, recipe) && left > 0 && refill(player, before))
             {
                 final Optional<RecipeHolder<CraftingRecipe>> next = findRecipe(player.serverLevel(), recipe);
                 if (next.isPresent() && next.get().id().equals(recipe))
@@ -290,6 +291,43 @@ public class WorkbenchMenu extends AbstractContainerMenu
         }
         level.playSound(null, pos, SoundEvents.VILLAGER_WORK_TOOLSMITH, SoundSource.PLAYERS, 0.8f, 1.0f);
         return true;
+    }
+
+    /**
+     * Puts one item like the one it held before the craft, taken from the player's inventory, in each grid cell the
+     * craft emptied. Cells still holding something (the rest of a stack, a damaged tool) are left as they are.
+     *
+     * @return false if the inventory lacks one of the items.
+     */
+    private boolean refill(final ServerPlayer player, final List<ItemStack> before)
+    {
+        final Inventory inventory = player.getInventory();
+        for (int slot = 0; slot < GRID_SLOTS; slot++)
+        {
+            if (before.get(slot).isEmpty() || !container.getItem(slot).isEmpty())
+            {
+                continue;
+            }
+            final int found = findInInventory(inventory, before.get(slot));
+            if (found < 0)
+            {
+                return false;
+            }
+            container.setItem(slot, inventory.removeItem(found, 1));
+        }
+        return true;
+    }
+
+    private static int findInInventory(final Inventory inventory, final ItemStack wanted)
+    {
+        for (int slot = 0; slot < inventory.items.size(); slot++)
+        {
+            if (ItemStack.isSameItem(inventory.getItem(slot), wanted))
+            {
+                return slot;
+            }
+        }
+        return -1;
     }
 
     private static void give(final Player player, final ItemStack stack)

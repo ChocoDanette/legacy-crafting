@@ -28,8 +28,8 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
 {
     private static final ResourceLocation TEXTURE = ResourceLocation.withDefaultNamespace("textures/gui/container/crafting_table.png");
     private static final ResourceLocation PROGRESS_SPRITE = ResourceLocation.withDefaultNamespace("container/furnace/burn_progress");
-    private static final int QUANTITY_X = 137;
-    private static final int QUANTITY_Y = 61;
+    private static final int QUANTITY_X = 116;
+    private static final int QUANTITY_Y = 74;
     private static final int PREVIEW_X = 93;
     private static final int PREVIEW_Y = 16;
 
@@ -52,22 +52,18 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
         super.init();
         titleLabelX = 29;
         addRenderableWidget(Button.builder(Component.translatable("legacycrafting.button.craft"), button -> craft())
-          .bounds(leftPos + 118, topPos + 15, 52, 13)
+          .bounds(leftPos + 86, topPos + 59, 54, 14)
           .build());
-        addRenderableWidget(Button.builder(Component.literal("--"), button -> quantity = 1)
-          .bounds(leftPos + 108, topPos + 59, 12, 12)
-          .tooltip(Tooltip.create(Component.translatable("legacycrafting.button.min")))
-          .build());
-        addRenderableWidget(Button.builder(Component.literal("-"), button -> quantity = Math.max(1, quantity - 1))
-          .bounds(leftPos + 121, topPos + 59, 10, 12)
-          .build());
-        addRenderableWidget(Button.builder(Component.literal("+"), button -> quantity = Math.min(maxQuantity(), quantity + 1))
-          .bounds(leftPos + 143, topPos + 59, 10, 12)
-          .build());
-        addRenderableWidget(Button.builder(Component.literal("++"), button -> quantity = maxQuantity())
-          .bounds(leftPos + 154, topPos + 59, 12, 12)
-          .tooltip(Tooltip.create(Component.translatable("legacycrafting.button.max")))
-          .build());
+        final SmallButton min = addRenderableWidget(new SmallButton(leftPos + 86, topPos + QUANTITY_Y, 12, 9, Component.literal("--"),
+          button -> quantity = 1));
+        min.setTooltip(Tooltip.create(Component.translatable("legacycrafting.button.min")));
+        addRenderableWidget(new SmallButton(leftPos + 99, topPos + QUANTITY_Y, 10, 9, Component.literal("-"),
+          button -> quantity = Math.max(1, quantity - 1)));
+        addRenderableWidget(new SmallButton(leftPos + 123, topPos + QUANTITY_Y, 10, 9, Component.literal("+"),
+          button -> quantity = Math.min(maxQuantity(), quantity + 1)));
+        final SmallButton max = addRenderableWidget(new SmallButton(leftPos + 134, topPos + QUANTITY_Y, 12, 9, Component.literal("++"),
+          button -> quantity = maxQuantity()));
+        max.setTooltip(Tooltip.create(Component.translatable("legacycrafting.button.max")));
         previous = addRenderableWidget(Button.builder(Component.literal("<"), button -> select(selected - 1))
           .bounds(leftPos + PREVIEW_X - 9, topPos + PREVIEW_Y + 2, 8, 12)
           .build());
@@ -85,21 +81,59 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
     }
 
     /**
-     * How many times the grid can make its recipe: the smallest stack of the grid, not counting tools, which come back
-     * damaged after each craft.
+     * How many times the recipe can be made from the grid and the player's inventory, which refills the grid between
+     * crafts: for each ingredient, the items of the grid and the inventory divided by the cells it fills. Tools are not
+     * counted, as they come back damaged after each craft.
      */
     private int maxQuantity()
     {
-        int max = WorkbenchMenu.MAX_QUANTITY;
+        final List<ItemStack> kinds = new ArrayList<>();
+        final List<Integer> cells = new ArrayList<>();
         for (int slot = 0; slot < WorkbenchMenu.GRID_SLOTS; slot++)
         {
             final ItemStack stack = menu.getSlot(slot).getItem();
-            if (!stack.isEmpty() && !stack.isDamageableItem())
+            if (stack.isEmpty() || stack.isDamageableItem())
             {
-                max = Math.min(max, stack.getCount());
+                continue;
+            }
+            final int kind = indexOf(kinds, stack);
+            if (kind < 0)
+            {
+                kinds.add(stack);
+                cells.add(1);
+            }
+            else
+            {
+                cells.set(kind, cells.get(kind) + 1);
             }
         }
+        int max = WorkbenchMenu.MAX_QUANTITY;
+        for (int kind = 0; kind < kinds.size(); kind++)
+        {
+            int available = 0;
+            for (int slot = 0; slot < menu.slots.size(); slot++)
+            {
+                final ItemStack stack = menu.getSlot(slot).getItem();
+                if (slot != WorkbenchMenu.RESULT_SLOT && ItemStack.isSameItem(stack, kinds.get(kind)))
+                {
+                    available += stack.getCount();
+                }
+            }
+            max = Math.min(max, available / cells.get(kind));
+        }
         return Math.max(1, max);
+    }
+
+    private static int indexOf(final List<ItemStack> kinds, final ItemStack stack)
+    {
+        for (int index = 0; index < kinds.size(); index++)
+        {
+            if (ItemStack.isSameItem(kinds.get(index), stack))
+            {
+                return index;
+            }
+        }
+        return -1;
     }
 
     private void select(final int index)

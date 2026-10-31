@@ -293,7 +293,7 @@ public final class InWorldCrafting
      */
     private static int findInInventory(final Inventory inventory, final ItemStack wanted)
     {
-        for (int slot = 0; slot < inventory.getContainerSize(); slot++)
+        for (int slot = 0; slot < inventory.items.size(); slot++)
         {
             if (ItemStack.isSameItem(inventory.getItem(slot), wanted))
             {
