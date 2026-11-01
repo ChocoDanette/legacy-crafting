@@ -4,6 +4,16 @@ Each version is published as a GitHub release with its jar. To release, set `mod
 `gradle.properties`, add its section below, merge to `main`, then run the Release workflow
 from the Actions tab (it creates the tag `v<mod_version>`), or push that tag yourself.
 
+## 0.6.0
+
+- Workbench window: the side panel with "++", "+", "-" and "--" is gone. The grid itself now sets how many items to
+  make: each cell's stack is one craft per item (2 logs in a cell make 8 planks), tools aside. A quantity button
+  beside "Craft" shows that number of items; the mouse wheel over it adds one item from the inventory to each cell, or
+  gives one back from each cell, up to 64 items. It counts down while crafting and is greyed out with nothing to craft.
+  Craft makes them all in a row, 64 items at most even if bigger stacks were laid by hand.
+- While crafting, the "Craft" button becomes "Stop" (the craft key too): the craft ends there, the items left stay in
+  the grid.
+
 ## 0.5.1
 
 - New logo in the mod list: the workbench with its items and a pickaxe coming out of the progress ring.

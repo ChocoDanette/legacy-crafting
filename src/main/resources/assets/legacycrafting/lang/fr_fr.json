@@ -5,7 +5,7 @@
   "block.legacycrafting.placed_items": "Objets posés",
   "attribute.name.legacycrafting.crafting_time": "Temps de fabrication",
   "legacycrafting.button.craft": "Fabriquer",
-  "legacycrafting.button.min": "Fabriquer une fois",
-  "legacycrafting.button.max": "Fabriquer autant que la grille le permet",
+  "legacycrafting.button.stop": "Arrêter",
+  "legacycrafting.button.quantity": "Objets à fabriquer : la molette ajoute ou rend un objet par case",
   "legacycrafting.preview.choice": "Résultat %s sur %s (molette ou flèches pour changer)"
 }
