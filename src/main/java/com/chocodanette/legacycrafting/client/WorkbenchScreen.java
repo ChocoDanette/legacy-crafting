@@ -1,6 +1,7 @@
 package com.chocodanette.legacycrafting.client;
 
 import com.chocodanette.legacycrafting.network.WorkbenchCraftPayload;
+import com.chocodanette.legacycrafting.network.WorkbenchQuantityPayload;
 import com.chocodanette.legacycrafting.workbench.WorkbenchMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -21,7 +22,7 @@ import java.util.Optional;
 
 /**
  * The window of a workbench: the vanilla crafting table layout, with a craft button, a quantity button beside it
- * (the mouse wheel over it sets how many items to craft, in steps of the recipe's result), the
+ * (the mouse wheel over it adds or takes one item in each cell of the grid, setting how many items to craft), the
  * progress of the craft filling the arrow, and a preview of the result above it. When the grid matches several recipes,
  * arrows pick the one to craft.
  */
@@ -29,7 +30,6 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
 {
     private static final ResourceLocation TEXTURE = ResourceLocation.withDefaultNamespace("textures/gui/container/crafting_table.png");
     private static final ResourceLocation PROGRESS_SPRITE = ResourceLocation.withDefaultNamespace("container/furnace/burn_progress");
-    private static final int MAX_ITEMS = 64;
     private static final int PREVIEW_X = 93;
     private static final int PREVIEW_Y = 16;
 
@@ -37,10 +37,6 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
     private List<ItemStack> results = List.of();
     private List<ItemStack> lastGrid = List.of();
     private int selected;
-    /**
-     * How many times to craft the recipe in a row.
-     */
-    private int crafts = 1;
     private Button quantity;
     private Button previous;
     private Button next;
@@ -75,8 +71,12 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
 
     private void craft()
     {
-        final Optional<ResourceLocation> recipe = recipes.isEmpty() ? Optional.empty() : Optional.of(recipes.get(selected).id());
-        PacketDistributor.sendToServer(new WorkbenchCraftPayload(recipe, Math.min(crafts, maxCrafts())));
+        PacketDistributor.sendToServer(new WorkbenchCraftPayload(chosenRecipe()));
+    }
+
+    private Optional<ResourceLocation> chosenRecipe()
+    {
+        return recipes.isEmpty() ? Optional.empty() : Optional.of(recipes.get(selected).id());
     }
 
     /**
@@ -85,62 +85,6 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
     private int perCraft()
     {
         return Math.max(1, preview().getCount());
-    }
-
-    /**
-     * How many times the recipe can be made in a row, for at most 64 items: from the grid and the player's inventory,
-     * which refills the grid between crafts, each ingredient's items divided by the cells it fills. Tools are not
-     * counted, as they come back damaged after each craft.
-     */
-    private int maxCrafts()
-    {
-        final List<ItemStack> kinds = new ArrayList<>();
-        final List<Integer> cells = new ArrayList<>();
-        for (int slot = 0; slot < WorkbenchMenu.GRID_SLOTS; slot++)
-        {
-            final ItemStack stack = menu.getSlot(slot).getItem();
-            if (stack.isEmpty() || stack.isDamageableItem())
-            {
-                continue;
-            }
-            final int kind = indexOf(kinds, stack);
-            if (kind < 0)
-            {
-                kinds.add(stack);
-                cells.add(1);
-            }
-            else
-            {
-                cells.set(kind, cells.get(kind) + 1);
-            }
-        }
-        int max = Math.min(WorkbenchMenu.MAX_QUANTITY, MAX_ITEMS / perCraft());
-        for (int kind = 0; kind < kinds.size(); kind++)
-        {
-            int available = 0;
-            for (int slot = 0; slot < menu.slots.size(); slot++)
-            {
-                final ItemStack stack = menu.getSlot(slot).getItem();
-                if (slot != WorkbenchMenu.RESULT_SLOT && ItemStack.isSameItem(stack, kinds.get(kind)))
-                {
-                    available += stack.getCount();
-                }
-            }
-            max = Math.min(max, available / cells.get(kind));
-        }
-        return Math.max(1, max);
-    }
-
-    private static int indexOf(final List<ItemStack> kinds, final ItemStack stack)
-    {
-        for (int index = 0; index < kinds.size(); index++)
-        {
-            if (ItemStack.isSameItem(kinds.get(index), stack))
-            {
-                return index;
-            }
-        }
-        return -1;
     }
 
     private void select(final int index)
@@ -185,18 +129,22 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
             }
         }
         previous.visible = next.visible = recipes.size() > 1;
-        crafts = Math.clamp(crafts, 1, maxCrafts());
         updateQuantity();
     }
 
     /**
-     * Shows on the quantity button the number of items to craft (or left to craft), greyed out with nothing to craft.
+     * Shows on the quantity button the number of items the grid will make (it counts down while crafting), greyed out
+     * with nothing to craft.
      */
     private void updateQuantity()
     {
-        final int craftsShown = menu.remaining() > 0 ? menu.remaining() : crafts;
+        final List<ItemStack> grid = new ArrayList<>(WorkbenchMenu.GRID_SLOTS);
+        for (int slot = 0; slot < WorkbenchMenu.GRID_SLOTS; slot++)
+        {
+            grid.add(menu.getSlot(slot).getItem());
+        }
         quantity.active = !recipes.isEmpty();
-        quantity.setMessage(Component.literal(recipes.isEmpty() ? "-" : String.valueOf(craftsShown * perCraft())));
+        quantity.setMessage(Component.literal(recipes.isEmpty() ? "-" : String.valueOf(WorkbenchMenu.crafts(grid) * perCraft())));
     }
 
     private ItemStack result(final RecipeHolder<CraftingRecipe> recipe)
@@ -249,8 +197,10 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
         }
         if (quantity.isMouseOver(mouseX, mouseY))
         {
-            crafts = Math.clamp(crafts + (int) Math.signum(scrollY), 1, maxCrafts());
-            updateQuantity();
+            if (scrollY != 0 && menu.remaining() == 0)
+            {
+                PacketDistributor.sendToServer(new WorkbenchQuantityPayload(chosenRecipe(), (int) Math.signum(scrollY)));
+            }
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);

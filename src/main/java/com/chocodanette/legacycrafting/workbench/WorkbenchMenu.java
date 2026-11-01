@@ -47,7 +47,10 @@ public class WorkbenchMenu extends AbstractContainerMenu
 
     private final Container container;
     private final BlockPos pos;
-    public static final int MAX_QUANTITY = 64;
+    /**
+     * Most items a series of crafts makes.
+     */
+    public static final int MAX_ITEMS = 64;
 
     /**
      * Ticks elapsed and total ticks of the craft in progress, and crafts left including this one, synced to the
@@ -120,10 +123,114 @@ public class WorkbenchMenu extends AbstractContainerMenu
     }
 
     /**
-     * The player pressed the craft button, having chosen {@code chosen} among the matching recipes (or the first one
-     * if absent), to craft it {@code quantity} times in a row.
+     * How many times the grid can make its recipe in a row: the smallest stack of the grid, tools aside (they come back
+     * damaged after each craft), or 1 if the grid holds only tools.
      */
-    public void startCraft(final ServerPlayer player, final Optional<ResourceLocation> chosen, final int quantity)
+    public static int crafts(final List<ItemStack> grid)
+    {
+        int crafts = Integer.MAX_VALUE;
+        for (final ItemStack stack : grid)
+        {
+            if (!stack.isEmpty() && !stack.isDamageableItem())
+            {
+                crafts = Math.min(crafts, stack.getCount());
+            }
+        }
+        return crafts == Integer.MAX_VALUE ? 1 : crafts;
+    }
+
+    /**
+     * The player scrolled over the quantity button: one craft more ({@code delta} > 0) or less. One more takes an
+     * item from the player's inventory for each cell below the new count; one less gives back the items above it, so
+     * the grid always holds what the crafts will use.
+     */
+    public void changeQuantity(final ServerPlayer player, final Optional<ResourceLocation> chosen, final int delta)
+    {
+        if (progress.get(1) > 0 || delta == 0)
+        {
+            return;
+        }
+        final ServerLevel level = player.serverLevel();
+        final Optional<RecipeHolder<CraftingRecipe>> recipe = findRecipe(level, chosen.orElse(null));
+        if (recipe.isEmpty())
+        {
+            return;
+        }
+        final int perCraft = Math.max(1, recipe.get().value().assemble(grid().input(), level.registryAccess()).getCount());
+        final int target = crafts(gridItems()) + Integer.signum(delta);
+        if (target < 1 || target * perCraft > MAX_ITEMS)
+        {
+            return;
+        }
+        final Inventory inventory = player.getInventory();
+        if (delta < 0)
+        {
+            for (int slot = 0; slot < GRID_SLOTS; slot++)
+            {
+                final ItemStack stack = container.getItem(slot);
+                if (!stack.isEmpty() && !stack.isDamageableItem() && stack.getCount() > target)
+                {
+                    give(player, container.removeItem(slot, stack.getCount() - target));
+                }
+            }
+            return;
+        }
+        // One more: every cell below the count must get its item, or nothing changes.
+        final List<Integer> cells = new ArrayList<>();
+        for (int slot = 0; slot < GRID_SLOTS; slot++)
+        {
+            final ItemStack stack = container.getItem(slot);
+            if (!stack.isEmpty() && !stack.isDamageableItem() && stack.getCount() < target)
+            {
+                if (target > Math.min(stack.getMaxStackSize(), container.getMaxStackSize(stack)))
+                {
+                    return;
+                }
+                cells.add(slot);
+            }
+        }
+        final int[] taken = new int[inventory.items.size()];
+        final int[] sources = new int[cells.size()];
+        for (int index = 0; index < cells.size(); index++)
+        {
+            final int found = findSameInInventory(inventory, container.getItem(cells.get(index)), taken);
+            if (found < 0)
+            {
+                return;
+            }
+            taken[found]++;
+            sources[index] = found;
+        }
+        for (int index = 0; index < cells.size(); index++)
+        {
+            inventory.removeItem(sources[index], 1);
+            final ItemStack stack = container.getItem(cells.get(index)).copy();
+            stack.grow(1);
+            container.setItem(cells.get(index), stack);
+        }
+    }
+
+    /**
+     * @return a slot of the inventory holding the same item as {@code wanted}, components included, with items left
+     * once {@code taken} of them are set aside, or -1.
+     */
+    private static int findSameInInventory(final Inventory inventory, final ItemStack wanted, final int[] taken)
+    {
+        for (int slot = 0; slot < inventory.items.size(); slot++)
+        {
+            if (inventory.getItem(slot).getCount() > taken[slot] && ItemStack.isSameItemSameComponents(inventory.getItem(slot), wanted))
+            {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * The player pressed the craft button, having chosen {@code chosen} among the matching recipes (or the first one
+     * if absent), to craft it as many times as the grid allows.
+     */
+    public void startCraft(final ServerPlayer player, final Optional<ResourceLocation> chosen)
     {
         if (progress.get(1) > 0)
         {
@@ -134,7 +241,7 @@ public class WorkbenchMenu extends AbstractContainerMenu
         {
             return;
         }
-        progress.set(2, Math.clamp(quantity, 1, MAX_QUANTITY));
+        progress.set(2, crafts(gridItems()));
         begin(player, recipe.get());
     }
 

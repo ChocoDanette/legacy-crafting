@@ -14,16 +14,15 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Optional;
 
 /**
- * Sent by the craft button of an open workbench, with the recipe chosen in the preview and how many times to craft it.
+ * Sent by the craft button of an open workbench, with the recipe chosen in the preview.
  */
-public record WorkbenchCraftPayload(Optional<ResourceLocation> recipe, int quantity) implements CustomPacketPayload
+public record WorkbenchCraftPayload(Optional<ResourceLocation> recipe) implements CustomPacketPayload
 {
     public static final Type<WorkbenchCraftPayload> TYPE =
       new Type<>(ResourceLocation.fromNamespaceAndPath(LegacyCrafting.MOD_ID, "workbench_craft"));
 
     public static final StreamCodec<FriendlyByteBuf, WorkbenchCraftPayload> STREAM_CODEC = StreamCodec.composite(
-      ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs::optional), WorkbenchCraftPayload::recipe,
-      ByteBufCodecs.VAR_INT, WorkbenchCraftPayload::quantity, WorkbenchCraftPayload::new);
+      ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs::optional), WorkbenchCraftPayload::recipe, WorkbenchCraftPayload::new);
 
     @NotNull
     @Override
@@ -38,7 +37,7 @@ public record WorkbenchCraftPayload(Optional<ResourceLocation> recipe, int quant
             if (context.player() instanceof final ServerPlayer player && player.containerMenu instanceof final WorkbenchMenu menu
                   && menu.stillValid(player))
             {
-                menu.startCraft(player, payload.recipe, payload.quantity);
+                menu.startCraft(player, payload.recipe);
             }
         });
     }

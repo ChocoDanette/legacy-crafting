@@ -6,10 +6,11 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
 
 ## 0.6.0
 
-- Workbench window: the side panel with "++", "+", "-" and "--" is gone. A quantity button beside "Craft" shows how
-  many items will be made; the mouse wheel over it adds or removes one craft (in steps of the recipe's result, up to
-  as many as the grid and the inventory allow, 64 items at most). It counts down while crafting and is greyed out
-  with nothing to craft.
+- Workbench window: the side panel with "++", "+", "-" and "--" is gone. The grid itself now sets how many items to
+  make: each cell's stack is one craft per item (2 logs in a cell make 8 planks), tools aside. A quantity button
+  beside "Craft" shows that number of items; the mouse wheel over it adds one item from the inventory to each cell, or
+  gives one back from each cell, up to 64 items through the wheel. It counts down while crafting and is greyed out
+  with nothing to craft. Craft makes them all in a row.
 
 ## 0.5.1
 

@@ -8,6 +8,7 @@ import com.chocodanette.legacycrafting.network.PlaceItemPayload;
 import com.chocodanette.legacycrafting.network.WorkbenchItemsPayload;
 import com.chocodanette.legacycrafting.network.StartCraftPayload;
 import com.chocodanette.legacycrafting.network.WorkbenchCraftPayload;
+import com.chocodanette.legacycrafting.network.WorkbenchQuantityPayload;
 import com.chocodanette.legacycrafting.workbench.Workbenches;
 import com.mojang.logging.LogUtils;
 import net.minecraft.world.entity.EntityType;
@@ -57,6 +58,7 @@ public class LegacyCrafting
           .playToServer(HoldCraftPayload.TYPE, HoldCraftPayload.STREAM_CODEC, HoldCraftPayload::handle)
           .playToServer(PlaceItemPayload.TYPE, PlaceItemPayload.STREAM_CODEC, PlaceItemPayload::handle)
           .playToServer(WorkbenchCraftPayload.TYPE, WorkbenchCraftPayload.STREAM_CODEC, WorkbenchCraftPayload::handle)
+          .playToServer(WorkbenchQuantityPayload.TYPE, WorkbenchQuantityPayload.STREAM_CODEC, WorkbenchQuantityPayload::handle)
           .playToClient(WorkbenchItemsPayload.TYPE, WorkbenchItemsPayload.STREAM_CODEC, WorkbenchItemsPayload::handle)
           .playToClient(CraftProgressPayload.TYPE, CraftProgressPayload.STREAM_CODEC, CraftProgressPayload::handle);
     }
