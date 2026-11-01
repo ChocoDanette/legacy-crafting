@@ -4,6 +4,13 @@ Each version is published as a GitHub release with its jar. To release, set `mod
 `gradle.properties`, add its section below, merge to `main`, then run the Release workflow
 from the Actions tab (it creates the tag `v<mod_version>`), or push that tag yourself.
 
+## 0.6.0
+
+- Workbench window: the side panel with "++", "+", "-" and "--" is gone. A quantity button beside "Craft" shows how
+  many items will be made; the mouse wheel over it adds or removes one craft (in steps of the recipe's result, up to
+  as many as the grid and the inventory allow, 64 items at most). It counts down while crafting and is greyed out
+  with nothing to craft.
+
 ## 0.5.1
 
 - New logo in the mod list: the workbench with its items and a pickaxe coming out of the progress ring.
