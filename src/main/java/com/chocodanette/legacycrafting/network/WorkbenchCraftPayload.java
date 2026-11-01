@@ -14,15 +14,17 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Optional;
 
 /**
- * Sent by the craft button of an open workbench, with the recipe chosen in the preview.
+ * Sent by the craft button of an open workbench, with the recipe chosen in the preview, or by the same button turned
+ * into a stop button while crafting ({@code stop}).
  */
-public record WorkbenchCraftPayload(Optional<ResourceLocation> recipe) implements CustomPacketPayload
+public record WorkbenchCraftPayload(Optional<ResourceLocation> recipe, boolean stop) implements CustomPacketPayload
 {
     public static final Type<WorkbenchCraftPayload> TYPE =
       new Type<>(ResourceLocation.fromNamespaceAndPath(LegacyCrafting.MOD_ID, "workbench_craft"));
 
     public static final StreamCodec<FriendlyByteBuf, WorkbenchCraftPayload> STREAM_CODEC = StreamCodec.composite(
-      ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs::optional), WorkbenchCraftPayload::recipe, WorkbenchCraftPayload::new);
+      ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs::optional), WorkbenchCraftPayload::recipe,
+      ByteBufCodecs.BOOL, WorkbenchCraftPayload::stop, WorkbenchCraftPayload::new);
 
     @NotNull
     @Override
@@ -37,7 +39,14 @@ public record WorkbenchCraftPayload(Optional<ResourceLocation> recipe) implement
             if (context.player() instanceof final ServerPlayer player && player.containerMenu instanceof final WorkbenchMenu menu
                   && menu.stillValid(player))
             {
-                menu.startCraft(player, payload.recipe);
+                if (payload.stop)
+                {
+                    menu.cancelCraft();
+                }
+                else
+                {
+                    menu.startCraft(player, payload.recipe);
+                }
             }
         });
     }

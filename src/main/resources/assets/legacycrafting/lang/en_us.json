@@ -5,6 +5,7 @@
   "block.legacycrafting.placed_items": "Placed Items",
   "attribute.name.legacycrafting.crafting_time": "Crafting Time",
   "legacycrafting.button.craft": "Craft",
+  "legacycrafting.button.stop": "Stop",
   "legacycrafting.button.quantity": "Items to craft: mouse wheel adds or gives back one item per cell",
   "legacycrafting.preview.choice": "Result %s of %s (scroll or arrows to change)"
 }

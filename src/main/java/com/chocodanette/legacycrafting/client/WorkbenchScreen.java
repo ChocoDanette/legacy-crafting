@@ -38,6 +38,7 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
     private List<ItemStack> lastGrid = List.of();
     private int selected;
     private Button quantity;
+    private Button craftButton;
     private Button previous;
     private Button next;
 
@@ -51,7 +52,7 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
     {
         super.init();
         titleLabelX = 29;
-        addRenderableWidget(Button.builder(Component.translatable("legacycrafting.button.craft"), button -> craft())
+        craftButton = addRenderableWidget(Button.builder(Component.translatable("legacycrafting.button.craft"), button -> craft())
           .bounds(leftPos + 86, topPos + 59, 54, 14)
           .build());
         // Beside the craft button: the number of items to craft, set with the mouse wheel over it.
@@ -71,7 +72,8 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
 
     private void craft()
     {
-        PacketDistributor.sendToServer(new WorkbenchCraftPayload(chosenRecipe()));
+        // While crafting, the same button (and key) stops the craft.
+        PacketDistributor.sendToServer(new WorkbenchCraftPayload(chosenRecipe(), menu.remaining() > 0));
     }
 
     private Optional<ResourceLocation> chosenRecipe()
@@ -144,7 +146,8 @@ public class WorkbenchScreen extends AbstractContainerScreen<WorkbenchMenu>
             grid.add(menu.getSlot(slot).getItem());
         }
         quantity.active = !recipes.isEmpty();
-        quantity.setMessage(Component.literal(recipes.isEmpty() ? "-" : String.valueOf(WorkbenchMenu.crafts(grid) * perCraft())));
+        quantity.setMessage(Component.literal(recipes.isEmpty() ? "-" : String.valueOf(WorkbenchMenu.crafts(grid, perCraft()) * perCraft())));
+        craftButton.setMessage(Component.translatable(menu.remaining() > 0 ? "legacycrafting.button.stop" : "legacycrafting.button.craft"));
     }
 
     private ItemStack result(final RecipeHolder<CraftingRecipe> recipe)

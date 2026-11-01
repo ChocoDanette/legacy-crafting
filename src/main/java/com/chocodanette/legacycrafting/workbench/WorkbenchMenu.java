@@ -123,10 +123,18 @@ public class WorkbenchMenu extends AbstractContainerMenu
     }
 
     /**
-     * How many times the grid can make its recipe in a row: the smallest stack of the grid, tools aside (they come back
-     * damaged after each craft), or 1 if the grid holds only tools.
+     * How many times the grid can make its recipe in a row, for at most 64 items of {@code perCraft} each.
      */
-    public static int crafts(final List<ItemStack> grid)
+    public static int crafts(final List<ItemStack> grid, final int perCraft)
+    {
+        return Math.max(1, Math.min(crafts(grid), MAX_ITEMS / Math.max(1, perCraft)));
+    }
+
+    /**
+     * The smallest stack of the grid, tools aside (they come back damaged after each craft), or 1 if the grid holds
+     * only tools.
+     */
+    private static int crafts(final List<ItemStack> grid)
     {
         int crafts = Integer.MAX_VALUE;
         for (final ItemStack stack : grid)
@@ -156,8 +164,8 @@ public class WorkbenchMenu extends AbstractContainerMenu
         {
             return;
         }
-        final int perCraft = Math.max(1, recipe.get().value().assemble(grid().input(), level.registryAccess()).getCount());
-        final int target = crafts(gridItems()) + Integer.signum(delta);
+        final int perCraft = perCraft(level, recipe.get());
+        final int target = crafts(gridItems(), perCraft) + Integer.signum(delta);
         if (target < 1 || target * perCraft > MAX_ITEMS)
         {
             return;
@@ -226,9 +234,22 @@ public class WorkbenchMenu extends AbstractContainerMenu
         return -1;
     }
 
+    private int perCraft(final ServerLevel level, final RecipeHolder<CraftingRecipe> recipe)
+    {
+        return Math.max(1, recipe.value().assemble(grid().input(), level.registryAccess()).getCount());
+    }
+
+    /**
+     * The player pressed the stop button: the craft in progress ends, its items stay in the grid.
+     */
+    public void cancelCraft()
+    {
+        stopCraft();
+    }
+
     /**
      * The player pressed the craft button, having chosen {@code chosen} among the matching recipes (or the first one
-     * if absent), to craft it as many times as the grid allows.
+     * if absent), to craft it as many times as the grid allows, 64 items at most.
      */
     public void startCraft(final ServerPlayer player, final Optional<ResourceLocation> chosen)
     {
@@ -241,7 +262,7 @@ public class WorkbenchMenu extends AbstractContainerMenu
         {
             return;
         }
-        progress.set(2, crafts(gridItems()));
+        progress.set(2, crafts(gridItems(), perCraft(player.serverLevel(), recipe.get())));
         begin(player, recipe.get());
     }
 
