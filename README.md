@@ -32,7 +32,8 @@ the world.
 - Server config `legacycrafting-server.toml`: `groundPlacing` (true: without TFC, the place key puts items on the
   ground), base time, time per ingredient, minimum and maximum time, fixed times
   for some recipes (`recipeSeconds`), the distance at which the craft stops, and `disableInventoryCrafting` (true: the
-  inventory has no 2x2 grid).
+  inventory has no 2x2 grid, nor do other mods' 2x2 grids making crafting table recipes, such as Curios'), with `allowedCraftingMenus` for the
+  menus that keep theirs.
 - Attribute `legacycrafting:crafting_time` (default 1) multiplies every craft time of a player. A "lazy" trait can add
   a modifier, for example:
   `/attribute @s legacycrafting:crafting_time modifier add legacy:lazy 0.5 add_multiplied_base` (1.5 times longer).

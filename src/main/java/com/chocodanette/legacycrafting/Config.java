@@ -35,8 +35,14 @@ public final class Config
       .defineInRange("maxDistance", 3.0, 1.0, 16.0);
 
     public static final ModConfigSpec.BooleanValue DISABLE_INVENTORY_CRAFTING = BUILDER
-      .comment("If true, the 2x2 crafting grid of the player's inventory is hidden and cannot be used.")
+      .comment("If true, the 2x2 crafting grid of the player's inventory is locked and cannot be used.")
       .define("disableInventoryCrafting", true);
+
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> ALLOWED_CRAFTING_MENUS = BUILDER
+      .comment("With disableInventoryCrafting, other mods' menus with a 2x2 grid making crafting table recipes (Curios'",
+        "inventory, for example) are locked too; mods crafting their own recipes in a 2x2 grid are left alone. Menus",
+        "listed here keep their grid: a menu type id (\"curios:curios_container\") or a menu class name.")
+      .defineListAllowEmpty("allowedCraftingMenus", List.of(), () -> "curios:curios_container", value -> value instanceof String);
 
     public static final ModConfigSpec.BooleanValue GROUND_PLACING = BUILDER
       .comment("If true, items can be placed on the ground with the place key (V by default), four per block. Only without",
@@ -60,6 +66,11 @@ public final class Config
     public static boolean inventoryCraftingDisabled()
     {
         return SPEC.isLoaded() && DISABLE_INVENTORY_CRAFTING.get();
+    }
+
+    public static List<? extends String> allowedCraftingMenus()
+    {
+        return SPEC.isLoaded() ? ALLOWED_CRAFTING_MENUS.get() : List.of();
     }
 
     public static boolean groundPlacingEnabled()

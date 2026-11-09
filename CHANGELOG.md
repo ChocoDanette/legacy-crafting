@@ -4,6 +4,24 @@ Each version is published as a GitHub release with its jar. To release, set `mod
 `gradle.properties`, add its section below, merge to `main`, then run the Release workflow
 from the Actions tab (it creates the tag `v<mod_version>`), or push that tag yourself.
 
+## 0.6.1
+
+- Curios' inventory screen no longer lets players craft (reported on CurseForge): its own 2x2 grid is locked like the
+  player's inventory, and items put there go back to the inventory. This applies to any other mod's menu whose 2x2
+  grid makes crafting table recipes (a vanilla result slot or a crafting recipe book); mods crafting their own
+  recipes in a 2x2 grid are left alone. Only with `disableInventoryCrafting`.
+- New server config `allowedCraftingMenus`: menus (type id such as `curios:curios_container`, or class name) that
+  keep their 2x2 grid anyway.
+- Inventory look: instead of a grey rectangle painted over the grid, the grid, arrow and result are covered by a small
+  flat patch sewn on with a red zigzag stitch, "Legacy Crafting" written across it, tilted, and the "Crafting" title
+  is removed. Outside the stitch the window's own texture shows, so it fits resource packs that change the GUI. Same
+  in Curios' screen, which copies the vanilla layout. Other mods' screens are not drawn on: their locked grid shows
+  empty.
+- Other mods' displays are no longer covered: the patch is drawn right after the window's texture, under widgets,
+  texts and tooltips. Clicks are dropped only on the arrow (JEI's "Show all recipes" area) and not where a widget is;
+  only JEI's "Show all recipes" tooltip there is removed.
+- Curios' screen also loses its recipe book button, like the vanilla inventory.
+
 ## 0.6.0
 
 - Workbench window: the side panel with "++", "+", "-" and "--" is gone. The grid itself now sets how many items to

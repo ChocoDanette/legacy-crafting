@@ -1,17 +1,28 @@
 package com.chocodanette.legacycrafting.crafting;
 
 import com.chocodanette.legacycrafting.Config;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.inventory.RecipeBookMenu;
+import net.minecraft.world.inventory.RecipeBookType;
+import net.minecraft.world.inventory.ResultSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
- * Takes the 2x2 crafting grid out of the player's inventory: crafting happens in the world.
+ * Takes the 2x2 crafting grid out of the player's inventory: crafting happens in the world. Other mods' menus whose 2x2
+ * grid makes crafting table recipes (Curios' inventory, for example) are locked the same way, unless listed in
+ * {@code allowedCraftingMenus}. Mods that craft their own recipes in a 2x2 grid are left alone.
  */
 public final class InventoryGrid
 {
@@ -72,17 +83,106 @@ public final class InventoryGrid
     }
 
     /**
+     * The 2x2 crafting grid of a menu other than the player's inventory, if it makes crafting table recipes: the menu
+     * has a vanilla result slot (not a mod's own kind) or a crafting recipe book. Null if it has none, a bigger grid
+     * too (like a crafting table), or is allowed by the config.
+     */
+    @Nullable
+    public static CraftingContainer lockedGrid(final AbstractContainerMenu menu)
+    {
+        if (menu instanceof InventoryMenu || !Config.inventoryCraftingDisabled())
+        {
+            return null;
+        }
+        CraftingContainer grid = null;
+        boolean crafting = menu instanceof final RecipeBookMenu<?, ?> book && book.getRecipeBookType() == RecipeBookType.CRAFTING;
+        for (final Slot slot : menu.slots)
+        {
+            // A locked slot was a vanilla result slot or a grid cell of a menu already found.
+            if (slot.getClass() == ResultSlot.class || slot instanceof LockedSlot)
+            {
+                crafting = true;
+            }
+            if (slot.container instanceof final CraftingContainer container)
+            {
+                if (container.getWidth() != 2 || container.getHeight() != 2)
+                {
+                    return null;
+                }
+                grid = container;
+            }
+        }
+        return grid == null || !crafting || isAllowed(menu) ? null : grid;
+    }
+
+    private static boolean isAllowed(final AbstractContainerMenu menu)
+    {
+        final List<? extends String> allowed = Config.allowedCraftingMenus();
+        if (allowed.isEmpty())
+        {
+            return false;
+        }
+        if (allowed.contains(menu.getClass().getName()))
+        {
+            return true;
+        }
+        try
+        {
+            final ResourceLocation type = BuiltInRegistries.MENU.getKey(menu.getType());
+            return type != null && allowed.contains(type.toString());
+        }
+        catch (final UnsupportedOperationException e)
+        {
+            // A menu without a type.
+            return false;
+        }
+    }
+
+    /**
+     * Locks the slots of the grid and the result slots of a menu. Some menus make their slots again (Curios, on a page
+     * change), so this runs every tick.
+     */
+    private static void lock(final AbstractContainerMenu menu, final CraftingContainer grid)
+    {
+        for (int index = 0; index < menu.slots.size(); index++)
+        {
+            final Slot slot = menu.slots.get(index);
+            if (!(slot instanceof LockedSlot) && (slot instanceof ResultSlot || slot.container == grid))
+            {
+                menu.slots.set(index, new LockedSlot(slot));
+            }
+        }
+    }
+
+    /**
      * The recipe book and other mods can still move items into the grid: give them back.
      */
     @SubscribeEvent
     public static void onPlayerTick(final PlayerTickEvent.Post event)
     {
         final Player player = event.getEntity();
-        if (player.level().isClientSide() || !Config.inventoryCraftingDisabled())
+        if (!Config.inventoryCraftingDisabled())
         {
             return;
         }
-        final CraftingContainer grid = player.inventoryMenu.getCraftSlots();
+        final CraftingContainer other = lockedGrid(player.containerMenu);
+        if (other != null)
+        {
+            lock(player.containerMenu, other);
+        }
+        if (player.level().isClientSide())
+        {
+            return;
+        }
+        giveBack(player, player.inventoryMenu, player.inventoryMenu.getCraftSlots());
+        if (other != null)
+        {
+            giveBack(player, player.containerMenu, other);
+        }
+    }
+
+    private static void giveBack(final Player player, final AbstractContainerMenu menu, final CraftingContainer grid)
+    {
         if (grid.isEmpty())
         {
             return;
@@ -95,6 +195,6 @@ public final class InventoryGrid
                 player.getInventory().placeItemBackInInventory(stack);
             }
         }
-        player.inventoryMenu.slotsChanged(grid);
+        menu.slotsChanged(grid);
     }
 }
