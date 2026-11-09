@@ -53,14 +53,13 @@ public final class InventoryScreenHandler
     private static final int ARROW_BOTTOM = 44;
     private static final String SHOW_RECIPES = "jei.tooltip.show.recipes";
     /**
-     * The patch, relative to the window: from under the top border down to above the offhand slot, between the
-     * player and the right border. The stitch goes up to 3 pixels in, so the cloth inside it covers the title (y 6),
-     * the grid (x 97 to 132, y 17 to 52) and the result (to x 170).
+     * The patch, relative to the window, as small as it can be: the stitch goes up to 3 pixels in, so the cloth inside
+     * it just covers the grid (x 97 to 132, y 17 to 52), the arrow and the result (to x 170, y 44).
      */
-    private static final int PATCH_LEFT = 93;
-    private static final int PATCH_TOP = 3;
+    private static final int PATCH_LEFT = 94;
+    private static final int PATCH_TOP = 14;
     private static final int PATCH_RIGHT = 173;
-    private static final int PATCH_BOTTOM = 56;
+    private static final int PATCH_BOTTOM = 55;
     private static final int PATCH_COLOR = 0xFFC6C6C6;
     private static final int THREAD_COLOR = 0xFFAA1E1E;
     private static final int TEXT_COLOR = 0x404040;

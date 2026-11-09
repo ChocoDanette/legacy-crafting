@@ -11,7 +11,7 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
   back to the inventory. Mods crafting their own recipes in a 2x2 grid are left alone. Only with
   `disableInventoryCrafting`; the new server config `allowedCraftingMenus` lists menus (type id such as
   `curios:curios_container`, or class name) that keep their grid anyway.
-- In the inventory (and Curios' screen, which copies it), the crafting title, grid, arrow and result are covered by a
+- In the inventory (and Curios' screen, which copies it), the "Crafting" title is removed and the grid, arrow and result are covered by a
   flat patch sewn on with a red zigzag stitch, "Legacy Crafting" written across it, tilted. Outside the stitch the
   window's own texture shows, so it looks sewn on with any resource pack. It is drawn right after the window's
   texture, under other mods' widgets, texts and tooltips. Clicks are dropped only on the arrow (JEI's "Show all
