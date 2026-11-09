@@ -18,8 +18,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * Takes the 2x2 crafting grid out of the player's inventory: crafting happens in the world. Other mods' menus with their
- * own 2x2 grid (Curios' inventory, for example) are locked the same way, unless listed in {@code allowedCraftingMenus}.
+ * Takes the 2x2 crafting grid out of the player's inventory: crafting happens in the world. Other mods' menus listed in
+ * {@code lockedCraftingMenus} (Curios' inventory by default) get their 2x2 grid locked the same way; other menus are
+ * left alone, so mods that craft their own way in a 2x2 grid keep working.
  */
 public final class InventoryGrid
 {
@@ -81,7 +82,7 @@ public final class InventoryGrid
 
     /**
      * The 2x2 crafting grid of a menu other than the player's inventory, or null if it has none (or a bigger grid too,
-     * like a crafting table) or is allowed by the config.
+     * like a crafting table) or is not listed in the config.
      */
     @Nullable
     public static CraftingContainer lockedGrid(final AbstractContainerMenu menu)
@@ -102,24 +103,24 @@ public final class InventoryGrid
                 grid = crafting;
             }
         }
-        return grid == null || isAllowed(menu) ? null : grid;
+        return grid == null || !isListed(menu) ? null : grid;
     }
 
-    private static boolean isAllowed(final AbstractContainerMenu menu)
+    private static boolean isListed(final AbstractContainerMenu menu)
     {
-        final List<? extends String> allowed = Config.allowedCraftingMenus();
-        if (allowed.isEmpty())
+        final List<? extends String> listed = Config.lockedCraftingMenus();
+        if (listed.isEmpty())
         {
             return false;
         }
-        if (allowed.contains(menu.getClass().getName()))
+        if (listed.contains(menu.getClass().getName()))
         {
             return true;
         }
         try
         {
             final ResourceLocation type = BuiltInRegistries.MENU.getKey(menu.getType());
-            return type != null && allowed.contains(type.toString());
+            return type != null && listed.contains(type.toString());
         }
         catch (final UnsupportedOperationException e)
         {
