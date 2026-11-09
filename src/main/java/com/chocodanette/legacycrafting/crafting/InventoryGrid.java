@@ -7,6 +7,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.inventory.RecipeBookMenu;
+import net.minecraft.world.inventory.RecipeBookType;
 import net.minecraft.world.inventory.ResultSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -18,9 +20,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * Takes the 2x2 crafting grid out of the player's inventory: crafting happens in the world. Other mods' menus listed in
- * {@code lockedCraftingMenus} (Curios' inventory by default) get their 2x2 grid locked the same way; other menus are
- * left alone, so mods that craft their own way in a 2x2 grid keep working.
+ * Takes the 2x2 crafting grid out of the player's inventory: crafting happens in the world. Other mods' menus whose 2x2
+ * grid makes crafting table recipes (Curios' inventory, for example) are locked the same way, unless listed in
+ * {@code allowedCraftingMenus}. Mods that craft their own recipes in a 2x2 grid are left alone.
  */
 public final class InventoryGrid
 {
@@ -81,8 +83,9 @@ public final class InventoryGrid
     }
 
     /**
-     * The 2x2 crafting grid of a menu other than the player's inventory, or null if it has none (or a bigger grid too,
-     * like a crafting table) or is not listed in the config.
+     * The 2x2 crafting grid of a menu other than the player's inventory, if it makes crafting table recipes: the menu
+     * has a vanilla result slot (not a mod's own kind) or a crafting recipe book. Null if it has none, a bigger grid
+     * too (like a crafting table), or is allowed by the config.
      */
     @Nullable
     public static CraftingContainer lockedGrid(final AbstractContainerMenu menu)
@@ -92,35 +95,41 @@ public final class InventoryGrid
             return null;
         }
         CraftingContainer grid = null;
+        boolean crafting = menu instanceof final RecipeBookMenu<?, ?> book && book.getRecipeBookType() == RecipeBookType.CRAFTING;
         for (final Slot slot : menu.slots)
         {
-            if (slot.container instanceof final CraftingContainer crafting)
+            // A locked slot was a vanilla result slot or a grid cell of a menu already found.
+            if (slot.getClass() == ResultSlot.class || slot instanceof LockedSlot)
             {
-                if (crafting.getWidth() != 2 || crafting.getHeight() != 2)
+                crafting = true;
+            }
+            if (slot.container instanceof final CraftingContainer container)
+            {
+                if (container.getWidth() != 2 || container.getHeight() != 2)
                 {
                     return null;
                 }
-                grid = crafting;
+                grid = container;
             }
         }
-        return grid == null || !isListed(menu) ? null : grid;
+        return grid == null || !crafting || isAllowed(menu) ? null : grid;
     }
 
-    private static boolean isListed(final AbstractContainerMenu menu)
+    private static boolean isAllowed(final AbstractContainerMenu menu)
     {
-        final List<? extends String> listed = Config.lockedCraftingMenus();
-        if (listed.isEmpty())
+        final List<? extends String> allowed = Config.allowedCraftingMenus();
+        if (allowed.isEmpty())
         {
             return false;
         }
-        if (listed.contains(menu.getClass().getName()))
+        if (allowed.contains(menu.getClass().getName()))
         {
             return true;
         }
         try
         {
             final ResourceLocation type = BuiltInRegistries.MENU.getKey(menu.getType());
-            return type != null && listed.contains(type.toString());
+            return type != null && allowed.contains(type.toString());
         }
         catch (final UnsupportedOperationException e)
         {

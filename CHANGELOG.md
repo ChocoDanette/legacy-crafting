@@ -6,10 +6,11 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
 
 ## 0.6.1
 
-- The 2x2 crafting grid of Curios' inventory screen is locked like the player's inventory, and items put there go back
-  to the inventory. Only with `disableInventoryCrafting`. The new server config `lockedCraftingMenus` lists the
-  menus treated this way (type id or class name, `curios:curios_container` by default): other mods' menus are left
-  alone, so mods that craft their own way in a 2x2 grid keep working.
+- The 2x2 crafting grid is locked in other mods' menus too when it makes crafting table recipes (a vanilla result
+  slot or a crafting recipe book), such as Curios' inventory screen: grid and result slots locked, items put there go
+  back to the inventory. Mods crafting their own recipes in a 2x2 grid are left alone. Only with
+  `disableInventoryCrafting`; the new server config `allowedCraftingMenus` lists menus (type id such as
+  `curios:curios_container`, or class name) that keep their grid anyway.
 - In the inventory (and Curios' screen, which copies it), the crafting title, grid, arrow and result are covered by a
   flat patch sewn on with a red zigzag stitch, "Legacy Crafting" written across it, tilted. Outside the stitch the
   window's own texture shows, so it looks sewn on with any resource pack. It is drawn right after the window's
