@@ -3,44 +3,37 @@ package com.chocodanette.legacycrafting.client;
 import com.chocodanette.legacycrafting.Config;
 import com.chocodanette.legacycrafting.LegacyCrafting;
 import com.chocodanette.legacycrafting.crafting.InventoryGrid;
+import com.mojang.datafixers.util.Either;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.world.inventory.CraftingContainer;
-import net.minecraft.world.inventory.ResultContainer;
-import net.minecraft.world.inventory.Slot;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.inventory.RecipeBookType;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ContainerScreenEvent;
+import net.neoforged.neoforge.client.event.RenderTooltipEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
 import java.util.List;
 
 /**
- * Hides the 2x2 crafting grid of the inventory screen, and of other mods' screens with one (locked by
- * {@code InventoryGrid}). Only the grid is hidden: it is painted over on the background layer, under everything other
- * mods draw, widgets and tooltips included.
+ * The screen side of the locked 2x2 grid ({@code InventoryGrid} locks its slots, which then show empty). Nothing is
+ * painted over the window, so resource packs and other mods' displays stay as they are.
  * <p>
- * The vanilla inventory and Curios' screen, which copies it, also lose their "Crafting" title, arrow and recipe book
- * button. JEI makes their arrow a "Show Recipes" area: clicks there are dropped before JEI sees them, unless a widget
- * is there.
+ * The vanilla inventory and Curios' screen, which copies it, lose their recipe book button. JEI makes their arrow a
+ * "Show all recipes" area: clicks there are dropped before JEI sees them (unless a widget is there), and its tooltip
+ * is removed.
  */
 @EventBusSubscriber(modid = LegacyCrafting.MOD_ID, value = Dist.CLIENT)
 public final class InventoryScreenHandler
 {
-    /**
-     * Area of the grid, arrow and result in the vanilla inventory texture, under the title.
-     */
-    private static final int LEFT = 96;
-    private static final int TOP = 16;
-    private static final int RIGHT = 173;
-    private static final int BOTTOM = 55;
     /**
      * Area of the arrow, JEI's "Show Recipes" area.
      */
@@ -48,7 +41,7 @@ public final class InventoryScreenHandler
     private static final int ARROW_TOP = 27;
     private static final int ARROW_RIGHT = 152;
     private static final int ARROW_BOTTOM = 44;
-    private static final int BACKGROUND = 0xFFC6C6C6;
+    private static final String SHOW_RECIPES = "jei.tooltip.show.recipes";
     private static final String CURIOS_SCREEN = "top.theillusivec4.curios.client.gui.CuriosScreen";
 
     private InventoryScreenHandler()
@@ -116,48 +109,37 @@ public final class InventoryScreenHandler
     }
 
     /**
-     * Painted right after the window's texture, before any widget, slot or label: in screen coordinates. First of the
-     * listeners, so that other mods' backgrounds stay on top.
+     * JEI turns the arrow into a "Show all recipes" area with its own tooltip: that tooltip only is removed, other
+     * mods' tooltips stay.
      */
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void onRenderBackground(final ContainerScreenEvent.Render.Background event)
+    @SubscribeEvent
+    public static void onGatherTooltip(final RenderTooltipEvent.GatherComponents event)
     {
-        final AbstractContainerScreen<?> screen = event.getContainerScreen();
-        if (!isHidden(screen))
+        final Minecraft minecraft = Minecraft.getInstance();
+        if (!(minecraft.screen instanceof final AbstractContainerScreen<?> screen) || !hasVanillaLayout(screen) || !isHidden(screen))
         {
             return;
         }
-        final GuiGraphics graphics = event.getGuiGraphics();
-        final int left = screen.getGuiLeft();
-        final int top = screen.getGuiTop();
-        if (hasVanillaLayout(screen))
+        final double scale = (double) minecraft.getWindow().getGuiScaledWidth() / minecraft.getWindow().getScreenWidth();
+        final double x = minecraft.mouseHandler.xpos() * scale - screen.getGuiLeft();
+        final double y = minecraft.mouseHandler.ypos() * scale - screen.getGuiTop();
+        if (x < ARROW_LEFT || x >= ARROW_RIGHT || y < ARROW_TOP || y >= ARROW_BOTTOM)
         {
-            graphics.fill(left + LEFT, top + TOP, left + RIGHT, top + BOTTOM, BACKGROUND);
             return;
         }
-        // Any other screen: only the frames of the grid's and result's slots.
-        final CraftingContainer grid = InventoryGrid.lockedGrid(screen.getMenu());
-        for (final Slot slot : screen.getMenu().slots)
+        // The list may not be editable: the tooltip is dropped only when it is JEI's line alone.
+        final List<Either<FormattedText, TooltipComponent>> elements = event.getTooltipElements();
+        if (!elements.isEmpty() && elements.stream().allMatch(InventoryScreenHandler::isShowRecipes))
         {
-            if (slot.container == grid || slot.container instanceof ResultContainer)
-            {
-                graphics.fill(left + slot.x - 1, top + slot.y - 1, left + slot.x + 17, top + slot.y + 17, BACKGROUND);
-            }
+            event.setCanceled(true);
         }
     }
 
-    /**
-     * The "Crafting" title of the vanilla layout, drawn by the window itself: painted over its own text only.
-     */
-    @SubscribeEvent
-    public static void onRenderForeground(final ContainerScreenEvent.Render.Foreground event)
+    private static boolean isShowRecipes(final Either<FormattedText, TooltipComponent> element)
     {
-        final AbstractContainerScreen<?> screen = event.getContainerScreen();
-        if (hasVanillaLayout(screen) && isHidden(screen))
-        {
-            // In coordinates relative to the window; the title sits at (97, 6 to 8).
-            final int width = Minecraft.getInstance().font.width(screen.getTitle());
-            event.getGuiGraphics().fill(LEFT, 5, 98 + width, 17, BACKGROUND);
-        }
+        return element.left()
+          .filter(text -> text instanceof final Component component && component.getContents() instanceof final TranslatableContents contents
+            && SHOW_RECIPES.equals(contents.getKey()))
+          .isPresent();
     }
 }

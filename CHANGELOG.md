@@ -7,12 +7,12 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
 ## 0.6.1
 
 - The 2x2 crafting grid is locked in other mods' menus too, not only in the player's inventory: any menu with a 2x2
-  crafting grid (Curios' inventory screen, for example) gets its grid and result slots locked and hidden, and items
+  crafting grid (Curios' inventory screen, for example) gets its grid and result slots locked, and items
   put there go back to the inventory. Only with `disableInventoryCrafting`; the new server config
   `allowedCraftingMenus` lists menus (type id such as `curios:curios_container`, or class name) that keep their grid.
-- The grid is now hidden on the background layer, under everything else: other mods' widgets, texts and tooltips
-  around it stay visible. Only the "Crafting" title is painted over, on its own text. Clicks are dropped only on the
-  arrow (JEI's "Show Recipes" area), and not where a widget is.
+- Nothing is painted over the inventory window any more, so resource packs' GUI textures and other mods' displays
+  stay intact: the locked grid shows as empty slots. Clicks are dropped only on the arrow (JEI's "Show all recipes"
+  area), and not where a widget is; JEI's "Show all recipes" tooltip there is removed, other tooltips stay.
 - Curios' screen, which copies the vanilla layout, also loses its recipe book button.
 
 ## 0.6.0
