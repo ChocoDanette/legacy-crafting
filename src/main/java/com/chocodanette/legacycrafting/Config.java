@@ -35,7 +35,7 @@ public final class Config
       .defineInRange("maxDistance", 3.0, 1.0, 16.0);
 
     public static final ModConfigSpec.BooleanValue DISABLE_INVENTORY_CRAFTING = BUILDER
-      .comment("If true, the 2x2 crafting grid of the player's inventory is hidden and cannot be used.")
+      .comment("If true, the 2x2 crafting grid of the player's inventory is locked and cannot be used.")
       .define("disableInventoryCrafting", true);
 
     public static final ModConfigSpec.ConfigValue<List<? extends String>> ALLOWED_CRAFTING_MENUS = BUILDER
