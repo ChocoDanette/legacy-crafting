@@ -4,6 +4,8 @@
   "key.legacycrafting.place": "Place item on the ground",
   "block.legacycrafting.placed_items": "Placed Items",
   "attribute.name.legacycrafting.crafting_time": "Crafting Time",
+  "legacycrafting.inventory.patch.line1": "Legacy",
+  "legacycrafting.inventory.patch.line2": "Crafting",
   "legacycrafting.button.craft": "Craft",
   "legacycrafting.button.stop": "Stop",
   "legacycrafting.button.quantity": "Items to craft: mouse wheel adds or gives back one item per cell",

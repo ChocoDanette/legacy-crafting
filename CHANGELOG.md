@@ -10,9 +10,12 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
   crafting grid (Curios' inventory screen, for example) gets its grid and result slots locked, and items
   put there go back to the inventory. Only with `disableInventoryCrafting`; the new server config
   `allowedCraftingMenus` lists menus (type id such as `curios:curios_container`, or class name) that keep their grid.
-- Nothing is painted over the inventory window any more, so resource packs' GUI textures and other mods' displays
-  stay intact: the locked grid shows as empty slots. Clicks are dropped only on the arrow (JEI's "Show all recipes"
-  area), and not where a widget is; JEI's "Show all recipes" tooltip there is removed, other tooltips stay.
+- In the inventory (and Curios' screen, which copies it), the crafting title, grid, arrow and result are covered by a
+  flat patch sewn on with a red zigzag stitch, "Legacy Crafting" written across it, tilted. Outside the stitch the
+  window's own texture shows, so it looks sewn on with any resource pack. It is drawn right after the window's
+  texture, under other mods' widgets, texts and tooltips. Clicks are dropped only on the arrow (JEI's "Show all
+  recipes" area), and not where a widget is; JEI's "Show all recipes" tooltip there is removed, other tooltips stay.
+  Other mods' screens keep their window as it is: their grid shows empty and locked.
 - Curios' screen, which copies the vanilla layout, also loses its recipe book button.
 
 ## 0.6.0
