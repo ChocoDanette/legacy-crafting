@@ -4,6 +4,12 @@ Each version is published as a GitHub release with its jar. To release, set `mod
 `gradle.properties`, add its section below, merge to `main`, then run the Release workflow
 from the Actions tab (it creates the tag `v<mod_version>`), or push that tag yourself.
 
+## 0.6.1
+
+- Curios' inventory screen no longer lets players craft: its own 2x2 grid, result and recipe book button are hidden
+  and locked like the vanilla inventory's, and items put there by other means go back to the inventory. Curios stays
+  optional.
+
 ## 0.6.0
 
 - Workbench window: the side panel with "++", "+", "-" and "--" is gone. The grid itself now sets how many items to
