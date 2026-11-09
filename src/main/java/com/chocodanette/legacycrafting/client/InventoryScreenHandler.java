@@ -15,7 +15,6 @@ import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ContainerScreenEvent;
-import net.neoforged.neoforge.client.event.RenderTooltipEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
 import java.util.List;
@@ -38,13 +37,6 @@ public final class InventoryScreenHandler
     private static final int RIGHT = 173;
     private static final int BOTTOM = 55;
     private static final int BACKGROUND = 0xFFC6C6C6;
-    /**
-     * Area of the removed recipe book button, relative to the inventory (20x18 at 104, 61).
-     */
-    private static final int BOOK_LEFT = 104;
-    private static final int BOOK_TOP = 61;
-    private static final int BOOK_RIGHT = 124;
-    private static final int BOOK_BOTTOM = 79;
 
     private InventoryScreenHandler()
     {
@@ -99,27 +91,6 @@ public final class InventoryScreenHandler
             {
                 event.setCanceled(true);
             }
-        }
-    }
-
-    /**
-     * Over the hidden grid or the removed recipe book button, no tooltip shows: some mods (JEI, or Curios versions with
-     * their own recipe book tooltip) still draw one there.
-     */
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void onRenderTooltip(final RenderTooltipEvent.Pre event)
-    {
-        final Minecraft minecraft = Minecraft.getInstance();
-        if (!(minecraft.screen instanceof final AbstractContainerScreen<?> screen) || !hasGrid(screen) || !Config.inventoryCraftingDisabled())
-        {
-            return;
-        }
-        final double scale = (double) minecraft.getWindow().getGuiScaledWidth() / minecraft.getWindow().getScreenWidth();
-        final double x = minecraft.mouseHandler.xpos() * scale - screen.getGuiLeft();
-        final double y = minecraft.mouseHandler.ypos() * scale - screen.getGuiTop();
-        if (x >= LEFT && x < RIGHT && y >= TOP && y < BOTTOM || x >= BOOK_LEFT && x < BOOK_RIGHT && y >= BOOK_TOP && y < BOOK_BOTTOM)
-        {
-            event.setCanceled(true);
         }
     }
 

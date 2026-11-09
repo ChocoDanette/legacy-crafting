@@ -9,8 +9,6 @@ from the Actions tab (it creates the tag `v<mod_version>`), or push that tag you
 - Curios' inventory screen no longer lets players craft: its own 2x2 grid, result and recipe book button are hidden
   and locked like the vanilla inventory's, and items put there by other means go back to the inventory. Curios stays
   optional.
-- No tooltip shows over the hidden grid or where the recipe book button was (some mod setups still drew the recipe
-  book's or JEI's there).
 
 ## 0.6.0
 
